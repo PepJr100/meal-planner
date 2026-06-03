@@ -5,31 +5,26 @@
     <title>Harmonize Ingredients - Meal Planner</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;600;700&display=swap" rel="stylesheet" />
     <script src="{{ url_for('static', filename='theme.js') }}"></script>
   </head>
   <body>
-    <nav class="navbar">
-      <div class="nav-content">
-        <span class="nav-brand">Meal Planner</span>
-        <div class="nav-links">
-          <a href="{{ url_for('index') }}" class="nav-link">Plan</a>
+    <header class="top-bar">
+      <div class="top-bar-main">
+        <div>
+          <h1>Ingredient Harmonization</h1>
+          <p class="subtitle">Clean up your recipe database by consolidating similar ingredients</p>
+        </div>
+        <nav class="top-nav">
+          <a href="{{ url_for('index') }}" class="nav-link">Planner</a>
           <a href="{{ url_for('recipes_list') }}" class="nav-link">Saved recipes</a>
           <a href="{{ url_for('shopping_list') }}" class="nav-link">Shopping list</a>
           <a href="{{ url_for('harmonize_ingredients') }}" class="nav-link active">Harmonizer</a>
           <button type="button" class="nav-link" id="theme-toggle" aria-label="Toggle theme">Theme</button>
-        </div>
+        </nav>
       </div>
-    </nav>
+    </header>
 
     <main class="container">
-      <header class="page-header">
-        <h1>Ingredient Harmonization</h1>
-        <p class="text-secondary">Clean up your recipe database by consolidating similar ingredients.</p>
-      </header>
-
       {% if suggestions %}
       <section class="harmonize-section">
         <h2 class="section-title">Suggested Harmonizations</h2>
@@ -62,7 +57,7 @@
                       {% endif %}
                       {% endfor %}
                     </select>
-                    <button type="submit" class="btn btn-primary btn-sm">Harmonize</button>
+                    <button type="submit" class="primary btn-sm">Harmonize</button>
                   </div>
                 </form>
               </div>
@@ -100,7 +95,7 @@
                 <td><span class="badge">{{ item.norm }}</span></td>
                 <td><small>{{ item.recipes | join(', ') }}</small></td>
                 <td>
-                  <button class="btn btn-secondary btn-sm btn-rename" data-raw="{{ item.raw }}">Rename</button>
+                  <button class="secondary btn-sm btn-rename" data-raw="{{ item.raw }}">Rename</button>
                 </td>
               </tr>
               {% endfor %}
@@ -126,7 +121,7 @@
           <input type="text" name="new_text" id="new_text_input" class="meal-slot-input" placeholder="e.g. 150g Basmati rice" required />
           
           <div style="margin-top: 20px;">
-            <button type="submit" class="btn btn-primary" style="width: 100%;">Apply to All Recipes</button>
+            <button type="submit" class="primary" style="width: 100%;">Apply to All Recipes</button>
           </div>
         </form>
       </div>
