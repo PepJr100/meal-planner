@@ -1,0 +1,10 @@
+aaa Standard Shopping
+
+- Bananas (5)
+- Apples (6)
+- Milk, (ml) (2000)
+- Bread (1)
+- Eggs (6)
+- Cheddar Cheese, g (250)
+- pancetta, g (400)
+- olives, Tub (1)

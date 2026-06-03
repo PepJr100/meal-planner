@@ -1,0 +1,362 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Simple Meal Planner</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+  </head>
+  <body>
+    <header class="top-bar">
+      <div class="top-bar-main">
+        <div>
+          <h1>Simple Meal Planner</h1>
+          <p class="subtitle">Plan your meals for the week</p>
+        </div>
+        <nav class="top-nav">
+          <a href="{{ url_for('index', week=this_week) }}" class="nav-link">This week</a>
+          <a href="{{ url_for('index', week=next_week) }}" class="nav-link">Next week</a>
+          <a href="{{ url_for('recipes_list') }}" class="nav-link">Saved recipes</a>
+          <a href="{{ url_for('shopping_list') }}" class="nav-link">Shopping list</a>
+          <a href="{{ url_for('harmonize_ingredients') }}" class="nav-link">Harmonizer</a>
+          <button type="button" class="nav-link" id="theme-toggle" aria-label="Toggle theme">Theme</button>
+          <form method="post" action="{{ url_for('clear_plan') }}" class="clear-form-inline">
+            <input type="hidden" name="week_start" value="{{ week_start }}" />
+            <button type="submit" class="nav-link danger-inline">Clear all meals</button>
+          </form>
+        </nav>
+      </div>
+    </header>
+
+    <datalist id="recipe-datalist">
+      {% for r in recipes %}
+      <option value="{{ r.name }}">
+      {% endfor %}
+    </datalist>
+
+    <main class="layout">
+      <section class="planner">
+        <h2>This Week (Monday–Sunday)</h2>
+        <div class="week-grid">
+          {% for date_iso, day_name, short_date in day_labels %}
+          <article class="day-card">
+            <header class="day-card-header">
+              <h3 class="day-name">{{ day_name }}</h3>
+              <span class="day-date">{{ short_date }}</span>
+            </header>
+            <form method="post" action="{{ url_for('update_day_meals', date_iso=date_iso) }}" class="day-meals-form">
+              <input type="hidden" name="week_start" value="{{ week_start }}" />
+              {% for meal_type in meal_types %}
+              <div class="meal-slot" draggable="true">
+                <label class="meal-slot-label">{{ meal_type }}</label>
+                <input
+                  type="text"
+                  name="{{ meal_type.lower() }}"
+                  value="{{ day_meals[date_iso][meal_type]|default('', true) }}"
+                  list="recipe-datalist"
+                  placeholder="Recipe or meal..."
+                  autocomplete="off"
+                  class="meal-slot-input"
+                />
+              </div>
+              {% endfor %}
+              <button type="submit" class="day-save primary js-day-save" style="display:none;">Save day</button>
+            </form>
+          </article>
+          {% endfor %}
+        </div>
+      </section>
+
+      <section class="sidebar">
+        <h2>Add a meal</h2>
+        <form method="post" action="{{ url_for('add_meal') }}" class="card">
+          <input type="hidden" name="week_start" value="{{ week_start }}" />
+          <label>
+            <span>Day</span>
+            <select name="day" required>
+              {% for date_iso, day_name, short_date in day_labels %}
+              <option value="{{ date_iso }}">{{ day_name }} {{ short_date }}</option>
+              {% endfor %}
+            </select>
+          </label>
+
+          <label>
+            <span>Meal type</span>
+            <select name="meal_type">
+              {% for t in meal_types %}
+              <option value="{{ t }}">{{ t }}</option>
+              {% endfor %}
+            </select>
+          </label>
+
+          <label>
+            <span>Recipe (optional)</span>
+            <select name="recipe_id">
+              <option value="">-- None / custom meal --</option>
+              {% for r in recipes %}
+              <option value="{{ r.id }}">{{ r.name }}</option>
+              {% endfor %}
+            </select>
+          </label>
+
+          <label>
+            <span>Meal name</span>
+            <input type="text" name="name" placeholder="e.g. Chicken salad (leave empty to use recipe name)" />
+          </label>
+
+          <label>
+            <span>Notes (optional)</span>
+            <textarea name="notes" rows="2" placeholder="Ingredients, prep notes, etc."></textarea>
+          </label>
+
+          <button type="submit" class="primary">Add meal</button>
+        </form>
+
+        <h2>Recipes</h2>
+        <form method="post" action="{{ url_for('upload_recipes') }}" class="card upload-card" enctype="multipart/form-data">
+          <input type="hidden" name="week_start" value="{{ week_start }}" />
+          <p class="section-title">Add from files</p>
+          <p class="hint">Drop .txt, .md or .csv files here, or click to pick them.</p>
+          <div class="drop-area" id="drop-area">
+            <p>Drag &amp; drop recipe files</p>
+            <p class="muted-small">They will be scanned for names &amp; ingredients.</p>
+            <input id="file-input" type="file" name="files" multiple />
+          </div>
+          <button type="submit" class="primary">Import files</button>
+        </form>
+
+        <div class="card">
+          <p class="section-title">Add from URL</p>
+          <p class="hint">Paste a recipe page URL; we’ll try to extract name, ingredients and method.</p>
+          <div class="url-fetch-row">
+            <input type="url" id="recipe-url-input" placeholder="https://example.com/recipe" class="url-input" />
+            <button type="button" id="fetch-recipe-btn" class="primary">Fetch recipe</button>
+          </div>
+          <p id="fetch-error" class="fetch-error" style="display:none;"></p>
+        </div>
+
+        <div id="recipe-confirm-modal" class="modal" role="dialog" aria-labelledby="modal-title" aria-modal="true" style="display:none;">
+          <div class="modal-backdrop" id="modal-backdrop"></div>
+          <div class="modal-content">
+            <h2 id="modal-title">Confirm recipe</h2>
+            <p class="hint">Edit if needed, then Save or Cancel.</p>
+            <form method="post" action="{{ url_for('add_recipe_from_parsed') }}" id="recipe-confirm-form">
+              <label><span>Recipe name</span><input type="text" name="name" id="confirm-name" required /></label>
+              <label><span>URL</span><input type="url" name="url" id="confirm-url" /></label>
+              <label><span>Ingredients (one per line)</span><textarea name="ingredients" id="confirm-ingredients" rows="8"></textarea></label>
+              <label><span>Method (optional)</span><textarea name="method" id="confirm-method" rows="6"></textarea></label>
+              <div class="modal-actions">
+                <button type="button" id="modal-cancel" class="secondary">Cancel</button>
+                <button type="submit" class="primary">Save recipe</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        {% if recipes %}
+        <section class="card existing-recipes">
+          <p class="section-title">Available recipes</p>
+          <ul class="recipes-list">
+            {% for r in recipes %}
+            <li draggable="true" data-name="{{ r.name }}">{{ r.name }}</li>
+            {% endfor %}
+          </ul>
+        </section>
+        {% endif %}
+      </section>
+    </main>
+    <script>
+      (function () {
+        // Theme toggle (default: system; remember choice)
+        const root = document.documentElement;
+        const toggle = document.getElementById("theme-toggle");
+        function getSystemTheme() {
+          return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        }
+        function applyTheme(theme) {
+          if (theme === "system") {
+            root.removeAttribute("data-theme");
+          } else {
+            root.setAttribute("data-theme", theme);
+          }
+          if (toggle) toggle.textContent = (theme === "system") ? ("Theme: " + getSystemTheme()) : ("Theme: " + theme);
+        }
+        const savedTheme = localStorage.getItem("theme") || "system";
+        applyTheme(savedTheme);
+        if (toggle) {
+          toggle.addEventListener("click", function () {
+            const current = localStorage.getItem("theme") || "system";
+            const next = current === "system" ? "dark" : current === "dark" ? "light" : "system";
+            localStorage.setItem("theme", next);
+            applyTheme(next);
+          });
+        }
+
+        const dropArea = document.getElementById("drop-area");
+        const fileInput = document.getElementById("file-input");
+        if (dropArea && fileInput) {
+          ["dragenter", "dragover"].forEach((eventName) => {
+            dropArea.addEventListener(eventName, (e) => { e.preventDefault(); e.stopPropagation(); dropArea.classList.add("drag-over"); }, false);
+          });
+          ["dragleave", "drop"].forEach((eventName) => {
+            dropArea.addEventListener(eventName, (e) => { e.preventDefault(); e.stopPropagation(); dropArea.classList.remove("drag-over"); }, false);
+          });
+          dropArea.addEventListener("drop", (e) => {
+            const dt = e.dataTransfer;
+            if (dt && dt.files && dt.files.length) fileInput.files = dt.files;
+          }, false);
+          dropArea.addEventListener("click", () => fileInput.click());
+        }
+
+        // Auto-save day when user selects or changes a meal
+        document.querySelectorAll(".meal-slot-input").forEach(function (input) {
+          async function autoSave() {
+            const form = input.closest("form");
+            if (!form) return;
+            
+            const formData = new FormData(form);
+            const url = form.action;
+            
+            try {
+              const response = await fetch(url, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                  'X-Requested-With': 'XMLHttpRequest'
+                }
+              });
+              if (!response.ok) throw new Error('Save failed');
+              console.log('Saved successfully');
+              // Highlight the slot briefly or show a small check?
+              const slot = input.closest('.meal-slot');
+              if (slot) {
+                slot.style.borderColor = 'var(--accent)';
+                setTimeout(() => { slot.style.borderColor = ''; }, 500);
+              }
+            } catch (err) {
+              console.error('Auto-save error:', err);
+            }
+          }
+          input.addEventListener("blur", autoSave);
+          input.addEventListener("change", autoSave);
+        });
+
+        // Fetch recipe from URL and show confirm modal
+        var fetchBtn = document.getElementById("fetch-recipe-btn");
+        var urlInput = document.getElementById("recipe-url-input");
+        var modal = document.getElementById("recipe-confirm-modal");
+        var backdrop = document.getElementById("modal-backdrop");
+        var cancelBtn = document.getElementById("modal-cancel");
+        var fetchError = document.getElementById("fetch-error");
+
+        function showModal(data) {
+          document.getElementById("confirm-name").value = data.name || "";
+          document.getElementById("confirm-url").value = data.url || "";
+          document.getElementById("confirm-ingredients").value = (data.ingredients || []).join("\n");
+          document.getElementById("confirm-method").value = data.method || "";
+          if (fetchError) fetchError.style.display = "none";
+          if (modal) modal.style.display = "flex";
+        }
+        function hideModal() {
+          if (modal) modal.style.display = "none";
+        }
+
+        if (fetchBtn && urlInput) {
+          fetchBtn.addEventListener("click", function () {
+            var url = urlInput.value.trim();
+            if (!url) return;
+            fetchError.style.display = "none";
+            fetchBtn.disabled = true;
+            fetch("{{ url_for('parse_recipe_url') }}?url=" + encodeURIComponent(url))
+              .then(function (r) { return r.json(); })
+              .then(function (data) {
+                if (data.error) throw new Error(data.error);
+                showModal(data);
+              })
+              .catch(function (err) {
+                if (fetchError) {
+                  fetchError.textContent = err.message || "Could not fetch or parse the recipe.";
+                  fetchError.style.display = "block";
+                }
+              })
+              .finally(function () { fetchBtn.disabled = false; });
+          });
+        }
+        if (backdrop) backdrop.addEventListener("click", hideModal);
+        if (cancelBtn) cancelBtn.addEventListener("click", hideModal);
+
+        // --- Drag and Drop Logic ---
+        let dragSrcEl = null;
+
+        document.querySelectorAll('.meal-slot, .recipes-list li').forEach(el => {
+          el.addEventListener('dragstart', function(e) {
+            dragSrcEl = this;
+            if (this.classList.contains('meal-slot')) {
+              this.classList.add('dragging');
+              // Store current input value for swapping
+              const val = this.querySelector('input').value;
+              e.dataTransfer.setData('text/plain', val);
+              e.dataTransfer.setData('source-type', 'meal-slot');
+            } else {
+              this.classList.add('dragging');
+              // From recipe list
+              const name = this.getAttribute('data-name');
+              e.dataTransfer.setData('text/plain', name);
+              e.dataTransfer.setData('source-type', 'recipe');
+            }
+            e.dataTransfer.effectAllowed = 'move';
+          });
+
+          el.addEventListener('dragend', function() {
+            this.classList.remove('dragging');
+            document.querySelectorAll('.meal-slot').forEach(slot => {
+              slot.classList.remove('drop-target');
+            });
+          });
+        });
+
+        document.querySelectorAll('.meal-slot').forEach(slot => {
+          slot.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            this.classList.add('drop-target');
+            return false;
+          });
+
+          slot.addEventListener('dragleave', function() {
+            this.classList.remove('drop-target');
+          });
+
+          slot.addEventListener('drop', function(e) {
+            e.stopPropagation();
+            const sourceType = e.dataTransfer.getData('source-type');
+            const dragData = e.dataTransfer.getData('text/plain');
+            const targetInput = this.querySelector('input');
+
+            if (dragSrcEl !== this) {
+              if (sourceType === 'meal-slot') {
+                // Swap values
+                const sourceInput = dragSrcEl.querySelector('input');
+                const oldTargetVal = targetInput.value;
+                
+                targetInput.value = dragData;
+                sourceInput.value = oldTargetVal;
+                
+                // Trigger change to auto-save both
+                targetInput.dispatchEvent(new Event('change'));
+                sourceInput.dispatchEvent(new Event('change'));
+              } else if (sourceType === 'recipe') {
+                // Simple overwrite from sidebar
+                targetInput.value = dragData;
+                targetInput.dispatchEvent(new Event('change'));
+              }
+            }
+            this.classList.remove('drop-target');
+            return false;
+          });
+        });
+      })();
+    </script>
+  </body>
+  </html>
+

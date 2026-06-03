@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Weekly Shopping List</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+  </head>
+  <body>
+    <header class="top-bar">
+      <div class="top-bar-main">
+        <div>
+          <h1>Weekly Shopping List</h1>
+          <p class="subtitle">Combined ingredients from all meals in your plan</p>
+        </div>
+        <nav class="top-nav">
+          <a href="{{ url_for('index', week=week_start) }}" class="nav-link">Planner</a>
+          <a href="{{ url_for('shopping_list') }}" class="nav-link active">Shopping list</a>
+          <a href="{{ url_for('harmonize_ingredients') }}" class="nav-link">Harmonizer</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="layout layout-single">
+      <section class="planner">
+        <h2>Items</h2>
+        {% if items %}
+        <div class="card" style="margin-bottom: 10px;">
+          <div class="url-fetch-row">
+            <span class="hint">Pantry staples:</span>
+            <a
+              href="{{ url_for('shopping_list', week=week_start, staples='bottom' if staples_mode == 'top' else 'top') }}"
+              class="nav-link"
+              style="padding: 4px 10px;"
+              >Pin {{ 'bottom' if staples_mode == 'top' else 'top' }}</a
+            >
+            <button class="nav-link" style="padding: 4px 10px; border: none; font-size: 12px; cursor: pointer;" onclick="copyIngredients()">Copy Shopping list</button>
+          </div>
+        </div>
+        <ul class="shopping-list">
+          {% for item in items %}
+          <li>
+            <div class="item-main">
+              <span class="item-name">{{ item.name }}</span>
+              {% if item.qty_uk %}
+              <span class="item-count">
+                {{ '%.0f'|format(item.qty_uk) }} {{ item.unit_uk or '' }}
+              </span>
+              {% endif %}
+            </div>
+            <div class="item-meta">
+              {% if item.originals %}
+              <span class="muted-small">
+                {% for o in item.originals %}
+                {{ o.original_text }}{% if not loop.last %}; {% endif %}
+                {% endfor %}
+              </span>
+              {% endif %}
+              <form method="post" action="{{ url_for('toggle_staple') }}" class="clear-form-inline">
+                <input type="hidden" name="name" value="{{ item.name }}" />
+                <input type="hidden" name="week_start" value="{{ week_start }}" />
+                <input type="hidden" name="staples_mode" value="{{ staples_mode }}" />
+                {% if item.is_staple %}
+                <button type="submit" class="btn-staple btn-unmark-staple" style="padding: 4px 10px; font-size: 11px;">
+                  Unmark staple
+                </button>
+                {% else %}
+                <button type="submit" class="btn-staple btn-mark-staple" style="padding: 4px 10px; font-size: 11px;">
+                  Mark as staple
+                </button>
+                {% endif %}
+              </form>
+            </div>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <p class="empty">No items yet. Add some meals with recipes first.</p>
+        {% endif %}
+      </section>
+    </main>
+    <script>
+      function copyIngredients() {
+        const textToCopy = Array.from(document.querySelectorAll('.shopping-list li')).map(li => {
+          return li.querySelector('.item-name')?.innerText.trim() || '';
+        }).filter(Boolean).join('\n');
+        
+        navigator.clipboard.writeText(textToCopy).then(() => {
+          const btn = document.querySelector('button[onclick="copyIngredients()"]');
+          const originalText = btn.innerText;
+          btn.innerText = 'Copied!';
+          setTimeout(() => btn.innerText = originalText, 2000);
+        });
+      }
+    </script>
+  </body>
+</html>
+

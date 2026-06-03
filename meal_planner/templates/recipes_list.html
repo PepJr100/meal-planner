@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Saved Recipes</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+  </head>
+  <body>
+    <header class="top-bar">
+      <div class="top-bar-main">
+        <div>
+          <h1>Saved Recipes</h1>
+          <p class="subtitle">View and edit your recipe library</p>
+        </div>
+        <nav class="top-nav">
+          <a href="{{ url_for('index') }}" class="nav-link">Planner</a>
+          <a href="{{ url_for('shopping_list') }}" class="nav-link">Shopping list</a>
+          <a href="{{ url_for('harmonize_ingredients') }}" class="nav-link">Harmonizer</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="layout">
+      <section class="planner recipes-list-section">
+        <h2>Recipes</h2>
+        {% if recipes %}
+        <ul class="recipes-grid">
+          {% for r in recipes %}
+          <li>
+            <a href="javascript:void(0)" data-id="{{ r.id }}" class="recipe-card-link{% if r.is_missing_amounts %} missing-amounts{% endif %}">
+              <span class="recipe-card-name">{{ r.name }}</span>
+              {% if r.url %}
+              <span class="recipe-card-meta">From URL</span>
+              {% endif %}
+              {% if r.is_missing_amounts %}
+              <span class="recipe-card-meta" style="color: rgba(245, 158, 11, 0.9);">Missing amounts</span>
+              {% endif %}
+            </a>
+            
+            <!-- Hidden Template data for sidebar population -->
+            <template id="recipe-template-{{ r.id }}">
+              <div class="recipe-data">
+                <input type="hidden" class="r-name" value="{{ r.name }}">
+                <input type="hidden" class="r-url" value="{{ r.url or '' }}">
+                <textarea class="r-ingredients" style="display:none;">{{ r.ingredients | join('\n') }}</textarea>
+                <textarea class="r-method" style="display:none;">{{ r.method or '' }}</textarea>
+                <input type="hidden" class="r-can-edit" value="{{ 'false' if r.source_path and r.source_path.suffix == '.csv' else 'true' }}">
+              </div>
+            </template>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <p class="empty">No recipes yet. Add some from files or from a URL.</p>
+        {% endif %}
+      </section>
+
+      <!-- Sidebar -->
+      <aside class="sidebar recipe-sidebar" id="recipe-sidebar" style="display: none;">
+        <h2 id="sidebar-title">Edit Recipe</h2>
+        <div class="card" id="sidebar-editor-container">
+          <form method="post" id="sidebar-form" class="recipe-edit-form" action="">
+            <label>
+              <span>Recipe name</span>
+              <input type="text" name="name" id="sidebar-name" value="" required />
+            </label>
+            <label>
+              <span>Source URL (optional)</span>
+              <input type="url" name="url" id="sidebar-url" value="" placeholder="https://..." />
+            </label>
+            <label>
+              <span>Ingredients (one per line)</span>
+              <textarea name="ingredients" id="sidebar-ingredients" rows="12" placeholder="One ingredient per line"></textarea>
+            </label>
+            <label>
+              <span>Method / instructions (optional)</span>
+              <textarea name="method" id="sidebar-method" rows="10" placeholder="Step 1..."></textarea>
+            </label>
+            <button type="submit" class="primary" id="sidebar-save-btn">Save recipe</button>
+          </form>
+          
+          <div id="sidebar-readonly-view" style="display: none;">
+            <p class="empty">This recipe is from a CSV or read-only source and cannot be edited here.</p>
+            <p><strong>Name:</strong> <span id="readonly-name"></span></p>
+            <p><strong>Ingredients:</strong></p>
+            <ul class="ingredients-readonly" id="readonly-ingredients">
+            </ul>
+          </div>
+        </div>
+      </aside>
+    </main>
+
+    <script>
+      document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('.recipe-card-link').forEach(link => {
+          link.addEventListener('click', (e) => {
+            const id = e.currentTarget.getAttribute('data-id');
+            if (id) openRecipeSidebar(id);
+          });
+        });
+      });
+
+      function openRecipeSidebar(id) {
+        const sidebar = document.getElementById('recipe-sidebar');
+        const form = document.getElementById('sidebar-form');
+        const readonlyView = document.getElementById('sidebar-readonly-view');
+        
+        // Show Sidebar
+        sidebar.style.display = 'block';
+        
+        // Get template text
+        const tpl = document.getElementById('recipe-template-' + id);
+        if (!tpl) return;
+        
+        const canEdit = tpl.content.querySelector('.r-can-edit').value === 'true';
+        const name = tpl.content.querySelector('.r-name').value;
+        const url = tpl.content.querySelector('.r-url').value;
+        const ingredients = tpl.content.querySelector('.r-ingredients').value;
+        const method = tpl.content.querySelector('.r-method').value;
+        
+        document.getElementById('sidebar-title').innerText = name;
+        
+        if (canEdit) {
+          form.style.display = 'flex';
+          readonlyView.style.display = 'none';
+          
+          form.action = `/recipes/edit/${id}`;
+          document.getElementById('sidebar-name').value = name;
+          document.getElementById('sidebar-url').value = url;
+          document.getElementById('sidebar-ingredients').value = ingredients;
+          document.getElementById('sidebar-method').value = method;
+        } else {
+          form.style.display = 'none';
+          readonlyView.style.display = 'block';
+          
+          document.getElementById('readonly-name').innerText = name;
+          const ul = document.getElementById('readonly-ingredients');
+          ul.innerHTML = '';
+          if (ingredients) {
+            ingredients.split('\n').forEach(ing => {
+               if (ing.trim()) {
+                 const li = document.createElement('li');
+                 li.innerText = ing;
+                 ul.appendChild(li);
+               }
+            });
+          }
+        }
+      }
+    </script>
+  </body>
+</html>

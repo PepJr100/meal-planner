@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# SQLite runtime database (regenerated from recipes/*.txt on first run)
+*.db
+meal_planner/meal_planner.db
+/data/
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

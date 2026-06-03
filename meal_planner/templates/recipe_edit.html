@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Edit: {{ recipe.name }}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+  </head>
+  <body>
+    <header class="top-bar">
+      <div class="top-bar-main">
+        <div>
+          <h1>{{ recipe.name }}</h1>
+          <p class="subtitle">Edit recipe</p>
+        </div>
+        <nav class="top-nav">
+          <a href="{{ url_for('recipes_list') }}" class="nav-link">← Saved recipes</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="layout layout-single">
+      <section class="planner">
+        {% if can_edit %}
+        <form method="post" action="{{ url_for('recipe_edit', recipe_id=recipe.id) }}" class="card recipe-edit-form">
+          <label>
+            <span>Recipe name</span>
+            <input type="text" name="name" value="{{ recipe.name }}" required />
+          </label>
+          <label>
+            <span>Source URL (optional)</span>
+            <input type="url" name="url" value="{{ recipe.url or '' }}" placeholder="https://..." />
+          </label>
+          <label>
+            <span>Ingredients (one per line)</span>
+            <textarea name="ingredients" rows="12" placeholder="One ingredient per line">{{ ingredients_text }}</textarea>
+          </label>
+          <label>
+            <span>Method / instructions (optional)</span>
+            <textarea name="method" rows="10" placeholder="Step 1...">{{ recipe.method or '' }}</textarea>
+          </label>
+          <button type="submit" class="primary">Save recipe</button>
+        </form>
+        {% else %}
+        <div class="card">
+          <p class="empty">This recipe is from a CSV or read-only source and cannot be edited here.</p>
+          <p><strong>Name:</strong> {{ recipe.name }}</p>
+          {% if recipe.ingredients %}
+          <p><strong>Ingredients:</strong></p>
+          <ul class="ingredients-readonly">
+            {% for ing in recipe.ingredients %}
+            <li>{{ ing }}</li>
+            {% endfor %}
+          </ul>
+          {% endif %}
+        </div>
+        {% endif %}
+      </section>
+    </main>
+  </body>
+</html>
