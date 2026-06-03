@@ -375,12 +375,16 @@ def build_shopping_list_for_week(week_plan_id: int) -> List[Dict[str, Any]]:
             bucket = Bucket(  # type: ignore
                 name=str(item["normalized_name"]),
                 unit_uk=item["unit_uk"],
-                qty_uk=0.0 if item["qty_uk"] is not None else None,
+                qty_uk=None,
                 originals=[],
             )
             totals[key] = bucket
-        if item["qty_uk"] is not None and bucket["qty_uk"] is not None:
-            bucket["qty_uk"] += item["qty_uk"]  # type: ignore
+        # Accumulate any quantity we find. The first quantity seeds the sum, so a
+        # bucket stays None only when no line in it ever carried a quantity. This
+        # avoids the order-dependent bug where a quantity-less line (e.g. "Gnocchi")
+        # processed first pinned the bucket to None and swallowed later "Gnocchi (1)".
+        if item["qty_uk"] is not None:
+            bucket["qty_uk"] = (bucket["qty_uk"] or 0.0) + item["qty_uk"]  # type: ignore
         bucket["originals"].append(
             {
                 "original_qty": item["original_qty"],
