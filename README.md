@@ -12,19 +12,32 @@ a single shopping list with sensible unit conversions.
 - **Weekly planner** — a Monday–Sunday grid with Breakfast / Lunch / Dinner / Snack
   slots. Drag recipes from the sidebar into slots, or drag one slot onto another to
   swap. Changes auto-save in the background (no page reloads).
-- **Recipe library** — recipes live in SQLite. On first run the app imports every
-  file in `meal_planner/recipes/*.{txt,md,csv}`. You can also add, edit, and upload
-  recipes from the UI.
-- **Import from a URL** — fetches a recipe page and extracts name / ingredients /
-  method from JSON-LD or common HTML patterns, with a confirmation step.
+
+  ![Weekly planner](screenshots/planner.png)
+
 - **Shopping list** — parses each ingredient line (via
   [`ingredient_parser_nlp`](https://pypi.org/project/ingredient-parser-nlp/)),
   normalizes to UK units (g, kg, ml, l, tsp, tbsp; treats `cup` as US), and sums
   quantities across the week. Items can be pinned as pantry **staples** (sorted to
   the top or bottom), and the whole list can be copied to the clipboard.
+
+  ![Weekly shopping list](screenshots/shopping-list.png)
+
 - **Ingredient harmonizer** — finds ingredients that share a base name but are
   written inconsistently (e.g. `Parmesan` vs `parmesan cheese`) for the *same*
   amount, and bulk-renames them across all recipes.
+
+  ![Ingredient harmonizer](screenshots/harmonizer.png)
+
+- **Recipe library** — recipes live in SQLite. On first run the app imports every
+  file in `meal_planner/recipes/*.{txt,md,csv}`. You can also add, edit, and upload
+  recipes from the UI.
+- **Import from a URL** — fetches a recipe page and extracts name / ingredients /
+  method from JSON-LD or common HTML patterns, with a confirmation step.
+- **Light & dark themes** — a warm "paper & sage" palette, with an earthy dark mode
+  that's remembered across pages. Light is the default.
+
+  ![Dark mode](screenshots/planner-dark.png)
 
 ## Recipe file format
 
