@@ -1,0 +1,31 @@
+# Keep the Docker build context small. Anything the app needs at runtime
+# (meal_planner/ code, templates, static, recipes, requirements.txt, Dockerfile)
+# is NOT listed here. Recipes seed the DB on first run, so they stay.
+
+# Version control / CI
+.git/
+.gitignore
+.github/
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Python build/cache artifacts
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# Runtime SQLite database (created fresh at /data in the container)
+*.db
+
+# Docs / images not used at runtime
+screenshots/
+
+# Editor / OS cruft
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

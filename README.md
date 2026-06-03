@@ -81,13 +81,26 @@ Set `MEAL_PLANNER_DB` to override the database path (defaults to
 
 ## Running with Docker
 
+### Pull the published image
+
+A prebuilt image is published to the GitHub Container Registry on every push to
+`main`:
+
+```bash
+docker pull ghcr.io/pepjr100/meal-planner:latest
+docker run -p 8000:8000 -v meal_planner_data:/data ghcr.io/pepjr100/meal-planner:latest
+```
+
+### Build it yourself
+
 ```bash
 docker build -t meal-planner .
 docker run -p 8000:8000 -v meal_planner_data:/data meal-planner
 ```
 
-The container serves the app with gunicorn on port 8000 and stores its database at
-`/data/meal_planner.db` (mount a volume to persist it).
+Either way the container serves the app with gunicorn on port 8000 and stores its
+database at `/data/meal_planner.db`; mount a volume (as above) to persist it across
+restarts. Then open <http://localhost:8000>.
 
 ## Project layout
 
