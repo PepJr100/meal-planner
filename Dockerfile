@@ -12,8 +12,8 @@ RUN python -c "import ingredient_parser"
 
 COPY . /app
 
-EXPOSE 8000
+EXPOSE 8717
 
 RUN mkdir -p /data
 
-CMD ["gunicorn", "-b", "0.0.0.0:8000", "--timeout", "120", "--preload", "meal_planner.app:app"]
+CMD ["gunicorn", "-b", "0.0.0.0:8717", "--timeout", "120", "--preload", "meal_planner.app:app"]

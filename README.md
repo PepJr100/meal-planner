@@ -70,10 +70,10 @@ CSV recipes use a `name,ingredients` header with `;`- or `,`-separated ingredien
 python -m venv venv
 venv\Scripts\activate            # Windows  (use: source venv/bin/activate on macOS/Linux)
 pip install -r requirements.txt
-python -m meal_planner.app       # or: flask --app meal_planner.app run --port 8000
+python -m meal_planner.app       # or: flask --app meal_planner.app run --port 8717
 ```
 
-Then open <http://localhost:8000>. The SQLite database is created automatically and
+Then open <http://localhost:8717>. The SQLite database is created automatically and
 seeded from `meal_planner/recipes/` on first launch.
 
 Set `MEAL_PLANNER_DB` to override the database path (defaults to
@@ -88,19 +88,19 @@ A prebuilt image is published to the GitHub Container Registry on every push to
 
 ```bash
 docker pull ghcr.io/pepjr100/meal-planner:latest
-docker run -p 8000:8000 -v meal_planner_data:/data ghcr.io/pepjr100/meal-planner:latest
+docker run -p 8717:8717 -v meal_planner_data:/data ghcr.io/pepjr100/meal-planner:latest
 ```
 
 ### Build it yourself
 
 ```bash
 docker build -t meal-planner .
-docker run -p 8000:8000 -v meal_planner_data:/data meal-planner
+docker run -p 8717:8717 -v meal_planner_data:/data meal-planner
 ```
 
-Either way the container serves the app with gunicorn on port 8000 and stores its
+Either way the container serves the app with gunicorn on port 8717 and stores its
 database at `/data/meal_planner.db`; mount a volume (as above) to persist it across
-restarts. Then open <http://localhost:8000>.
+restarts. Then open <http://localhost:8717>.
 
 ## Project layout
 
