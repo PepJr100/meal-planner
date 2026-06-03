@@ -1,7 +1,15 @@
 # Task: Harmonize Shopping List Ingredients
 
-- [ ] Investigate `build_shopping_list_for_week` aggregation logic
-- [ ] Determine why "Basmati rice, g (150)" fails parsing
+- [x] Investigate `build_shopping_list_for_week` aggregation logic
+  - Root cause: bucket `qty_uk` was seeded from the first item only, so a
+    quantity-less line (e.g. "Gnocchi") processed first pinned the bucket to
+    None and the `bucket["qty_uk"] is not None` guard then dropped every later
+    quantity in that bucket. Fix: accumulate lazily — the first quantity seeds
+    the sum, so a bucket is None only when no line ever carried a quantity.
+- [x] Determine why "Basmati rice, g (150)" fails parsing
+  - No longer fails at the line level (parses to 150 g via the NLP parser +
+    proactive parenthetical catch). The observed "missing quantity" was the same
+    aggregation bug above surfacing on the shopping list.
 - [x] Refinement: Make Recipe Sidebar sticky so it stays on screen
 - [x] Feature 5: Ingredient Harmonization Page
   - [x] Implement clustering logic in `app.py`
