@@ -1,54 +1,69 @@
-/* Anima-inspired: clean, light, purple accent, Inter font */
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+/* Warm "paper & sage" palette inspired by memba.io — Figtree font, earthy tones */
+@import url("https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap");
 
 :root {
-  --bg: #fafbfc;
-  --bg-elevated: #ffffff;
-  --accent: #6366f1;
-  --accent-soft: rgba(99, 102, 241, 0.12);
-  --accent-dark: #4f46e5;
-  --danger: #dc2626;
-  --danger-soft: rgba(220, 38, 38, 0.1);
-  --text: #111827;
-  --muted: #6b7280;
-  --border: #e5e7eb;
+  /* Warm paper surfaces */
+  --bg: #f6f5ea;          /* cream page background */
+  --bg-elevated: #fffef9; /* paper — cards lift off the cream */
+  --surface: var(--bg-elevated);
+  --bg-dark: var(--bg);
+
+  /* Sage green primary */
+  --accent: #5a7050;
+  --accent-dark: #475a40;
+  --accent-light: #98ab80;
+  --accent-soft: rgba(90, 112, 80, 0.12);
+
+  /* Apricot / terracotta secondary accent */
+  --accent-2: #d2925a;
+  --accent-2-soft: #f6e8d6;
+  --accent-2-deep: #925f2e;
+
+  /* Earthy error */
+  --danger: #a8503a;
+  --danger-soft: rgba(168, 80, 58, 0.1);
+
+  /* Warm ink text */
+  --text: #25291d;
+  --text-primary: var(--text);
+  --muted: #878b76;
+  --text-secondary: var(--muted);
+
+  /* Warm lines */
+  --border: #e8e6d4;
+  --border-strong: #d9d6bf;
+
+  --font-fancy: "Figtree", system-ui, sans-serif;
   --radius-lg: 12px;
   --radius-md: 8px;
-  --shadow-soft: 0 1px 3px rgba(0, 0, 0, 0.08);
-  --shadow-card: 0 4px 12px rgba(0, 0, 0, 0.06);
+  --shadow-soft: 0 1px 3px rgba(37, 41, 29, 0.06);
+  --shadow-card: 0 4px 14px rgba(37, 41, 29, 0.07);
 }
 
 /* Dark mode: either explicit data-theme=dark, or system dark when no override set */
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme]) {
-    --bg: #0b1020;
-    --bg-elevated: #111833;
-    --accent: #8b5cf6;
-    --accent-soft: rgba(139, 92, 246, 0.18);
-    --accent-dark: #7c3aed;
-    --danger: #f87171;
-    --danger-soft: rgba(248, 113, 113, 0.12);
-    --text: #e5e7eb;
-    --muted: #a1a1aa;
-    --border: rgba(229, 231, 235, 0.12);
-    --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.5);
-    --shadow-card: 0 10px 30px rgba(0, 0, 0, 0.45);
-  }
-}
-
+/* Warm earthy dark theme: opt-in only (light is the default everywhere). */
 :root[data-theme="dark"] {
-  --bg: #0b1020;
-  --bg-elevated: #111833;
-  --accent: #8b5cf6;
-  --accent-soft: rgba(139, 92, 246, 0.18);
-  --accent-dark: #7c3aed;
-  --danger: #f87171;
-  --danger-soft: rgba(248, 113, 113, 0.12);
-  --text: #e5e7eb;
-  --muted: #a1a1aa;
-  --border: rgba(229, 231, 235, 0.12);
-  --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.5);
-  --shadow-card: 0 10px 30px rgba(0, 0, 0, 0.45);
+  --bg: #1c1f17;
+  --bg-elevated: #25291d;
+  --surface: var(--bg-elevated);
+  --bg-dark: var(--bg);
+  --accent: #98ab80;
+  --accent-dark: #bccaa6;
+  --accent-light: #bccaa6;
+  --accent-soft: rgba(152, 171, 128, 0.16);
+  --accent-2: #d2925a;
+  --accent-2-soft: rgba(210, 146, 90, 0.16);
+  --accent-2-deep: #e0a878;
+  --danger: #c97a63;
+  --danger-soft: rgba(201, 122, 99, 0.15);
+  --text: #f6f5ea;
+  --text-primary: var(--text);
+  --muted: #a7ab95;
+  --text-secondary: var(--muted);
+  --border: rgba(246, 245, 234, 0.12);
+  --border-strong: rgba(246, 245, 234, 0.2);
+  --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.45);
+  --shadow-card: 0 10px 30px rgba(0, 0, 0, 0.4);
 }
 
 *,
@@ -116,7 +131,7 @@ body {
 }
 
 .nav-link:hover {
-  background: rgba(99, 102, 241, 0.2);
+  background: var(--accent-soft);
   color: var(--accent-dark);
 }
 
@@ -227,7 +242,7 @@ h2 {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--muted);
+  color: var(--accent-2-deep);
   margin: 0;
 }
 
@@ -283,8 +298,8 @@ h2 {
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  background: var(--accent-soft);
-  color: var(--accent);
+  background: var(--accent-2-soft);
+  color: var(--accent-2-deep);
   font-weight: 500;
 }
 
@@ -448,7 +463,7 @@ button {
 }
 
 .btn-unmark-staple:hover {
-  background: rgba(99, 102, 241, 0.2);
+  background: var(--accent-soft);
   color: var(--accent-dark);
 }
 
@@ -705,7 +720,8 @@ button {
   justify-content: space-between;
   align-items: center;
   gap: 12px;
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--bg);
+  border: 1px solid var(--border);
   padding: 12px;
   border-radius: 8px;
 }
@@ -715,12 +731,12 @@ button {
 }
 
 .raw-text {
-  font-family: 'Courier New', Courier, monospace;
-  background: rgba(147, 51, 234, 0.1);
-  color: var(--accent-light);
+  font-family: "JetBrains Mono", ui-monospace, "Courier New", monospace;
+  background: var(--accent-2-soft);
+  color: var(--accent-2-deep);
   padding: 2px 6px;
   border-radius: 4px;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
 }
 
 .variation-recipes {

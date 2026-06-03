@@ -5,6 +5,7 @@
     <title>Edit: {{ recipe.name }}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+    <script src="{{ url_for('static', filename='theme.js') }}"></script>
   </head>
   <body>
     <header class="top-bar">
@@ -15,6 +16,7 @@
         </div>
         <nav class="top-nav">
           <a href="{{ url_for('recipes_list') }}" class="nav-link">← Saved recipes</a>
+          <button type="button" class="nav-link" id="theme-toggle" aria-label="Toggle theme">Theme</button>
         </nav>
       </div>
     </header>

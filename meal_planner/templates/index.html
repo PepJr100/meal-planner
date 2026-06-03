@@ -5,6 +5,7 @@
     <title>Simple Meal Planner</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+    <script src="{{ url_for('static', filename='theme.js') }}"></script>
   </head>
   <body>
     <header class="top-bar">
@@ -167,30 +168,7 @@
     </main>
     <script>
       (function () {
-        // Theme toggle (default: system; remember choice)
-        const root = document.documentElement;
-        const toggle = document.getElementById("theme-toggle");
-        function getSystemTheme() {
-          return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-        }
-        function applyTheme(theme) {
-          if (theme === "system") {
-            root.removeAttribute("data-theme");
-          } else {
-            root.setAttribute("data-theme", theme);
-          }
-          if (toggle) toggle.textContent = (theme === "system") ? ("Theme: " + getSystemTheme()) : ("Theme: " + theme);
-        }
-        const savedTheme = localStorage.getItem("theme") || "system";
-        applyTheme(savedTheme);
-        if (toggle) {
-          toggle.addEventListener("click", function () {
-            const current = localStorage.getItem("theme") || "system";
-            const next = current === "system" ? "dark" : current === "dark" ? "light" : "system";
-            localStorage.setItem("theme", next);
-            applyTheme(next);
-          });
-        }
+        // Theme handling lives in static/theme.js (shared across all pages).
 
         const dropArea = document.getElementById("drop-area");
         const fileInput = document.getElementById("file-input");
