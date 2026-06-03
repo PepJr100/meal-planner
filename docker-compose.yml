@@ -1,0 +1,33 @@
+# Run the Meal Planner with: docker compose up -d
+# Then open http://localhost:8717
+#
+# By default this pulls the prebuilt image from GitHub Container Registry.
+# To build from the local Dockerfile instead, uncomment the `build:` line below
+# (and run `docker compose up -d --build`).
+
+services:
+  meal-planner:
+    image: ghcr.io/pepjr100/meal-planner:latest
+    # build: .                     # uncomment to build locally instead of pulling
+    container_name: meal-planner
+    restart: always
+    ports:
+      # host:container — the app listens on 8717 inside the container (set in the
+      # Dockerfile), mapped to the same port on the host.
+      - "8717:8717"
+    environment:
+      # Where the SQLite DB lives inside the container (matches the mounted volume).
+      MEAL_PLANNER_DB: /data/meal_planner.db
+    volumes:
+      # Named volume so your meals/recipes survive container restarts and upgrades.
+      - meal_planner_data:/data
+    healthcheck:
+      # The app has no dedicated /health route, but GET / returns 200 when ready.
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8717/')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+volumes:
+  meal_planner_data:
