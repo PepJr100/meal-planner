@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" role="img" aria-label="Meal planner">
+  <!-- Two-tone: sage tile + cream plate, with knife & fork resting on the plate -->
+  <rect width="32" height="32" rx="7" fill="#5a7050"/>
+  <circle cx="16" cy="16" r="9" fill="#f6f5ea"/>
+  <g fill="none" stroke="#5a7050" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Fork (left): three tines joining a handle -->
+    <path d="M11.8 9.5 V13"/>
+    <path d="M13 9.5 V13"/>
+    <path d="M14.2 9.5 V13"/>
+    <path d="M13 13 V22.5"/>
+    <!-- Knife handle -->
+    <path d="M19.4 14.8 V22.5"/>
+  </g>
+  <!-- Knife blade (filled): straight spine, curved cutting edge, pointed tip -->
+  <path d="M18.8 15.2 V11 Q18.8 9 19.5 9 Q20.6 11.4 20.3 13.6 Q20.15 14.7 20 15.2 Z" fill="#5a7050"/>
+</svg>
