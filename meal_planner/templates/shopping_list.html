@@ -48,7 +48,7 @@
               <span class="item-name">{{ item.name }}</span>
               {% if item.qty_uk %}
               <span class="item-count">
-                {{ '%.0f'|format(item.qty_uk) }} {{ item.unit_uk or '' }}
+                {{ '%g'|format(item.qty_uk) }} {{ item.unit_uk or '' }}
               </span>
               {% endif %}
             </div>
