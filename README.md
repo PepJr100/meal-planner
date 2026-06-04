@@ -82,6 +82,17 @@ seeded from `meal_planner/recipes/` on first launch.
 Set `MEAL_PLANNER_DB` to override the database path (defaults to
 `meal_planner/meal_planner.db`).
 
+### Running the tests
+
+```bash
+pip install -r requirements-dev.txt
+pytest
+```
+
+The suite covers ingredient parsing, UK-unit conversion, and shopping-list
+aggregation (including regressions for the dropped-quantity and fractional-rounding
+bugs). It runs in CI on every push and pull request.
+
 ## Running with Docker
 
 ### Pull the published image
