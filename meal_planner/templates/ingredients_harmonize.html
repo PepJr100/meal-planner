@@ -46,24 +46,27 @@
                   </div>
                   <div class="variation-recipes">Used in: {{ var_data.recipes | join(', ') }}</div>
                 </div>
-                <form action="{{ url_for('harmonize_apply') }}" method="POST" class="harmonize-form" 
-                      onsubmit="return validateHarmonize(this, '{{ var_data.qty }}', '{{ var_data.unit }}')">
-                  <input type="hidden" name="old_text" value="{{ raw }}" />
-                  <div class="harmonize-input-group">
-                    <select name="new_text" class="input-select" required>
-                      <option value="" disabled selected>Target...</option>
-                      {% for target_raw, target_data in cluster.variations.items() %}
-                      {% if target_raw != raw %}
-                      <option value="{{ target_raw }}" data-qty="{{ target_data.qty }}" data-unit="{{ target_data.unit }}">{{ target_raw }}</option>
-                      {% endif %}
-                      {% endfor %}
-                    </select>
-                    <button type="submit" class="primary btn-sm">Harmonize</button>
-                  </div>
-                </form>
               </div>
               {% endfor %}
             </div>
+            <form action="{{ url_for('harmonize_apply') }}" method="POST" class="harmonize-form group-harmonize-form"
+                  onsubmit="return prepareGroupHarmonize(this)">
+              {% for raw in cluster.variations.keys() %}
+              <input type="hidden" name="old_text" value="{{ raw }}" />
+              {% endfor %}
+              <input type="hidden" name="new_text" />
+              <div class="harmonize-input-group">
+                <select name="target_select" class="input-select" required onchange="toggleCustomText(this)" style="flex: 1;">
+                  <option value="" disabled selected>Harmonize all to&hellip;</option>
+                  {% for target_raw in cluster.variations.keys() %}
+                  <option value="{{ target_raw }}">{{ target_raw }}</option>
+                  {% endfor %}
+                  <option value="__other__">&#9998; Other (type your own)&hellip;</option>
+                </select>
+                <input type="text" name="custom_text" class="input-select group-custom-text" placeholder="Type replacement&hellip;" style="display: none; flex: 1;" />
+                <button type="submit" class="primary btn-sm">Harmonize group</button>
+              </div>
+            </form>
           </div>
           {% endfor %}
         </div>
@@ -155,42 +158,44 @@
         }, 300);
       }
 
-      function validateHarmonize(form, sourceQtyLabel, sourceUnitLabel) {
-        const select = form.querySelector('select[name="new_text"]');
-        const selectedOption = select.options[select.selectedIndex];
-        if (!selectedOption) return true;
-
-        const targetQtyLabel = selectedOption.getAttribute('data-qty');
-        const targetUnitLabel = selectedOption.getAttribute('data-unit');
-
-        console.log('Validating Harmonize:', {
-          source: { qty: sourceQtyLabel, unit: sourceUnitLabel },
-          target: { qty: targetQtyLabel, unit: targetUnitLabel }
-        });
-
-        // Convert to comparable values
-        const parseVal = (v) => {
-          if (!v || v === 'None' || v === 'undefined') return null;
-          const n = parseFloat(v);
-          return isNaN(n) ? v.toString().toLowerCase() : n;
-        };
-
-        const sQ = parseVal(sourceQtyLabel);
-        const tQ = parseVal(targetQtyLabel);
-        const sU = (sourceUnitLabel || '').toString().toLowerCase().trim();
-        const tU = (targetUnitLabel || '').toString().toLowerCase().trim();
-
-        // Use a small epsilon for float comparison if they are numbers
-        const qtysMatch = (typeof sQ === 'number' && typeof tQ === 'number') 
-          ? Math.abs(sQ - tQ) < 0.0001 
-          : sQ === tQ;
-
-        if (!qtysMatch || sU !== tU) {
-          const sText = (sQ === null) ? "no measure" : `${sourceQtyLabel} ${sourceUnitLabel}`;
-          const tText = (tQ === null) ? "no measure" : `${targetQtyLabel} ${targetUnitLabel}`;
-          return confirm(`WARNING: You are harmonizing items with DIFFERENT measures.\n\nFrom: ${sText}\nTo: ${tText}\n\nThis will update your recipes to the NEW measure. Are you sure you want to proceed?`);
+      // Show/hide the free-text box when "Other" is picked in a group dropdown.
+      function toggleCustomText(select) {
+        const form = select.closest('form');
+        const custom = form.querySelector('.group-custom-text');
+        if (select.value === '__other__') {
+          custom.style.display = '';
+          custom.required = true;
+          custom.focus();
+        } else {
+          custom.style.display = 'none';
+          custom.required = false;
         }
-        return true;
+      }
+
+      // Resolve the chosen target (an existing variation or custom text),
+      // stash it in the hidden new_text field, and confirm before applying.
+      function prepareGroupHarmonize(form) {
+        const select = form.querySelector('select[name="target_select"]');
+        const custom = form.querySelector('.group-custom-text');
+        const hidden = form.querySelector('input[name="new_text"]');
+
+        let newText;
+        if (select.value === '__other__') {
+          newText = (custom.value || '').trim();
+          if (!newText) {
+            alert('Please type a replacement.');
+            custom.focus();
+            return false;
+          }
+        } else if (select.value) {
+          newText = select.value;
+        } else {
+          return false;
+        }
+
+        hidden.value = newText;
+        const count = form.querySelectorAll('input[name="old_text"]').length;
+        return confirm(`Harmonize all ${count} variation(s) in this group to:\n\n"${newText}"\n\nThis updates every matching ingredient line across your recipes.`);
       }
     </script>
   </body>
