@@ -11,7 +11,7 @@ from fractions import Fraction
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple, TypedDict
 
-from flask import Flask, jsonify, redirect, render_template, request, url_for  # type: ignore
+from flask import Flask, jsonify, redirect, render_template, request, send_file, url_for  # type: ignore
 from werkzeug.utils import secure_filename  # type: ignore
 
 from ingredient_parser import parse_ingredient  # type: ignore
@@ -128,6 +128,106 @@ def get_household_size() -> int:
 
 def set_household_size(n: int) -> None:
     set_setting("household_size", int(n))
+
+
+# --- Backup / restore -----------------------------------------------------
+
+BACKUP_VERSION = 1
+
+
+def export_data() -> Dict[str, Any]:
+    """Serialise the whole database to a plain dict (recipes, plans, meals, etc.)."""
+    def rows(query: str) -> List[Dict[str, Any]]:
+        return [dict(r) for r in db.execute(query)]
+
+    return {
+        "meta": {
+            "app": "meal-planner",
+            "version": BACKUP_VERSION,
+            "exported_at": datetime.now(timezone.utc).isoformat(),
+        },
+        "recipes": rows(
+            "SELECT id, name, url, ingredients_text, method_text, serves, created_at, updated_at "
+            "FROM recipes ORDER BY id"
+        ),
+        "week_plans": rows("SELECT id, week_start_date FROM week_plans ORDER BY id"),
+        "week_meals": rows(
+            "SELECT id, week_plan_id, day_date, meal_type, recipe_id, meal_name "
+            "FROM week_meals ORDER BY id"
+        ),
+        "pantry_staples": rows("SELECT normalized_name FROM pantry_staples ORDER BY normalized_name"),
+        "settings": rows("SELECT key, value FROM settings ORDER BY key"),
+    }
+
+
+def import_data(payload: Dict[str, Any]) -> None:
+    """Replace the entire database from an exported dict.
+
+    Wipes existing data and reloads it inside a single transaction, preserving
+    ids so week_meals keep referencing the right recipes/plans. Raises ValueError
+    on a malformed payload; the transaction is rolled back on any error.
+    """
+    if not isinstance(payload, dict):
+        raise ValueError("Backup must be a JSON object.")
+
+    sections = {
+        "recipes": payload.get("recipes") or [],
+        "week_plans": payload.get("week_plans") or [],
+        "week_meals": payload.get("week_meals") or [],
+        "pantry_staples": payload.get("pantry_staples") or [],
+        "settings": payload.get("settings") or [],
+    }
+    for key, value in sections.items():
+        if not isinstance(value, list):
+            raise ValueError("'%s' must be a list." % key)
+
+    now = datetime.now(timezone.utc).isoformat()
+    try:
+        # Delete children before parents; reinsert parents before children.
+        db.execute("DELETE FROM week_meals")
+        db.execute("DELETE FROM week_plans")
+        db.execute("DELETE FROM pantry_staples")
+        db.execute("DELETE FROM settings")
+        db.execute("DELETE FROM recipes")
+
+        for r in sections["recipes"]:
+            db.execute(
+                "INSERT INTO recipes(id, name, url, ingredients_text, method_text, serves, created_at, updated_at) "
+                "VALUES (?,?,?,?,?,?,?,?)",
+                (
+                    r.get("id"), r.get("name"), r.get("url"),
+                    r.get("ingredients_text") or "", r.get("method_text"), r.get("serves"),
+                    r.get("created_at") or now, r.get("updated_at") or now,
+                ),
+            )
+        for w in sections["week_plans"]:
+            db.execute(
+                "INSERT INTO week_plans(id, week_start_date) VALUES (?, ?)",
+                (w.get("id"), w.get("week_start_date")),
+            )
+        for m in sections["week_meals"]:
+            db.execute(
+                "INSERT INTO week_meals(id, week_plan_id, day_date, meal_type, recipe_id, meal_name) "
+                "VALUES (?,?,?,?,?,?)",
+                (
+                    m.get("id"), m.get("week_plan_id"), m.get("day_date"),
+                    m.get("meal_type"), m.get("recipe_id"), m.get("meal_name") or "",
+                ),
+            )
+        for s in sections["pantry_staples"]:
+            db.execute(
+                "INSERT INTO pantry_staples(normalized_name) VALUES (?)",
+                (s.get("normalized_name"),),
+            )
+        for st in sections["settings"]:
+            db.execute(
+                "INSERT INTO settings(key, value) VALUES (?, ?)",
+                (st.get("key"), st.get("value")),
+            )
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
 
 
 def ensure_recipes_dir() -> None:
@@ -1194,6 +1294,55 @@ def harmonize_apply():
             
     db.commit()
     return redirect(url_for("harmonize_ingredients"))
+
+
+@app.route("/backup", methods=["GET"])
+def backup_page():
+    """Export / import the whole database."""
+    counts = {
+        "recipes": db.execute("SELECT COUNT(1) c FROM recipes").fetchone()["c"],
+        "week_plans": db.execute("SELECT COUNT(1) c FROM week_plans").fetchone()["c"],
+        "week_meals": db.execute("SELECT COUNT(1) c FROM week_meals").fetchone()["c"],
+        "pantry_staples": db.execute("SELECT COUNT(1) c FROM pantry_staples").fetchone()["c"],
+    }
+    return render_template(
+        "backup.html",
+        counts=counts,
+        status=(request.args.get("status") or ""),
+        message=(request.args.get("message") or ""),
+    )
+
+
+@app.route("/backup/export.json", methods=["GET"])
+def backup_export_json():
+    payload = json.dumps(export_data(), indent=2)
+    filename = "meal-planner-backup-%s.json" % datetime.now().strftime("%Y%m%d")
+    return app.response_class(
+        payload,
+        mimetype="application/json",
+        headers={"Content-Disposition": "attachment; filename=%s" % filename},
+    )
+
+
+@app.route("/backup/export.db", methods=["GET"])
+def backup_export_db():
+    """Download the raw SQLite database file."""
+    db.commit()  # flush any pending writes before copying the file
+    filename = "meal-planner-%s.db" % datetime.now().strftime("%Y%m%d")
+    return send_file(_db_path(), as_attachment=True, download_name=filename)
+
+
+@app.route("/backup/import", methods=["POST"])
+def backup_import():
+    f = request.files.get("file")
+    if not f or not f.filename:
+        return redirect(url_for("backup_page", status="error", message="No file selected."))
+    try:
+        payload = json.loads(f.read().decode("utf-8"))
+        import_data(payload)
+    except (ValueError, json.JSONDecodeError, sqlite3.Error, UnicodeDecodeError) as e:
+        return redirect(url_for("backup_page", status="error", message=("Import failed: %s" % e)[:200]))
+    return redirect(url_for("backup_page", status="ok", message="Backup restored successfully."))
 
 
 if __name__ == "__main__":

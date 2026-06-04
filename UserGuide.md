@@ -12,6 +12,7 @@ hosting, see the [README](README.md).
 - [The recipe library](#the-recipe-library)
 - [Importing a recipe from a URL](#importing-a-recipe-from-a-url)
 - [The ingredient harmonizer](#the-ingredient-harmonizer)
+- [Backup & restore](#backup--restore)
 - [Themes](#themes)
 - [Tips & FAQ](#tips--faq)
 
@@ -172,6 +173,18 @@ everywhere it appears — useful for one-off fixes the suggestion grouping didn'
 surface.
 
 ---
+
+## Backup & restore
+
+The **Backup** link in the top bar opens a page where you can safeguard your data.
+
+- **Export** — download everything (recipes, week plans, planned meals, staples, and
+  settings) as a single **JSON backup** file, or grab a raw copy of the **`.db`**
+  database. Do this periodically, and especially before a big tidy-up in the
+  Harmonizer (whose bulk renames can't be undone).
+- **Restore** — upload a JSON backup to bring your data back. Importing **replaces**
+  everything currently in the app with the file's contents, after a confirmation
+  prompt, so it also works for moving your library to another machine.
 
 ## Themes
 
