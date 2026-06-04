@@ -22,7 +22,32 @@ RECIPES_DIR = BASE_DIR / "recipes"
 DEFAULT_DB_PATH = BASE_DIR / "meal_planner.db"
 
 
+def _read_version() -> str:
+    """App version: env override (set by the Docker build) or the VERSION file."""
+    env = os.environ.get("MEAL_PLANNER_VERSION")
+    if env:
+        return env.strip()
+    try:
+        return (BASE_DIR.parent / "VERSION").read_text(encoding="utf-8").strip() or "dev"
+    except OSError:
+        return "dev"
+
+
+# Channel/tag = the image tag this build was published under (stable / latest),
+# injected at Docker build time; "dev" when running from source.
+APP_VERSION = _read_version()
+APP_CHANNEL = (os.environ.get("MEAL_PLANNER_CHANNEL") or "dev").strip()
+
+
 app = Flask(__name__, template_folder="templates", static_folder="static")
+
+
+@app.context_processor
+def inject_app_version() -> Dict[str, str]:
+    # Show a short git sha when the version is a full 40-char commit hash.
+    version = APP_VERSION[:7] if len(APP_VERSION) == 40 else APP_VERSION
+    return {"app_version": version, "app_channel": APP_CHANNEL}
+
 
 MEAL_TYPES = ["Breakfast", "Lunch", "Dinner", "Snack"]
 
