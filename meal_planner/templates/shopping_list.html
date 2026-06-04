@@ -37,7 +37,8 @@
               style="padding: 4px 10px;"
               >Pin {{ 'bottom' if staples_mode == 'top' else 'top' }}</a
             >
-            <button class="nav-link" style="padding: 4px 10px; border: none; font-size: 12px; cursor: pointer;" onclick="copyIngredients()">Copy Shopping list</button>
+            <button class="nav-link" style="padding: 4px 10px; border: none; font-size: 12px; cursor: pointer;" onclick="copyIngredients(this, false)">Copy Shopping list</button>
+            <button class="nav-link" style="padding: 4px 10px; border: none; font-size: 12px; cursor: pointer;" onclick="copyIngredients(this, true)">Copy Shopping list (w/ quantities)</button>
           </div>
         </div>
         <ul class="shopping-list">
@@ -83,15 +84,15 @@
       </section>
     </main>
     <script>
-      function copyIngredients() {
+      function copyIngredients(btn, withQuantities) {
         const textToCopy = Array.from(document.querySelectorAll('.shopping-list li')).map(li => {
           const name = li.querySelector('.item-name')?.innerText.trim() || '';
-          const count = li.querySelector('.item-count')?.innerText.trim() || '';
           if (!name) return '';
+          if (!withQuantities) return name;
+          const count = li.querySelector('.item-count')?.innerText.trim() || '';
           return count ? name + ' — ' + count.replace(/\s+/g, ' ') : name;
         }).filter(Boolean).join('\n');
 
-        const btn = document.querySelector('button[onclick="copyIngredients()"]');
         const originalText = btn.innerText;
         const showFeedback = (msg) => {
           btn.innerText = msg;
