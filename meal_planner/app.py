@@ -1181,6 +1181,14 @@ def shopping_list():
         "shopping_list.html",
         items=items,
         week_start=week_start.isoformat(),
+        week_label="{} – {}".format(
+            week_start.strftime("%d %b"),
+            (week_start + timedelta(days=6)).strftime("%d %b %Y"),
+        ),
+        is_current_week=(week_start == monday_of(today)),
+        this_week=monday_of(today).isoformat(),
+        prev_week=(week_start - timedelta(days=7)).isoformat(),
+        next_week=(week_start + timedelta(days=7)).isoformat(),
         staples_mode=pin_mode,
         household_size=household_size,
     )
