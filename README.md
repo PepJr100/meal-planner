@@ -21,8 +21,9 @@ a single shopping list with sensible unit conversions.
 - **Shopping list** — parses each ingredient line (via
   [`ingredient_parser_nlp`](https://pypi.org/project/ingredient-parser-nlp/)),
   normalizes to UK units (g, kg, ml, l, tsp, tbsp; treats `cup` as US), and sums
-  quantities across the week. Items can be pinned as pantry **staples** (sorted to
-  the top or bottom), and the whole list can be copied to the clipboard.
+  quantities across the week. Recipes that declare a **serves** count are scaled to
+  your household size. Items can be pinned as pantry **staples** (sorted to the top
+  or bottom), and the whole list can be copied to the clipboard.
 
   ![Weekly shopping list](screenshots/shopping-list.png)
 
@@ -49,6 +50,7 @@ Plain-text recipes (`.txt` / `.md`) follow a simple convention:
 ```
 Chilli Con Carne
 URL: https://example.com/chilli        (optional)
+SERVES: 4                              (optional)
 
 - Onion (1)
 - Kidney Beans, g (400)
@@ -60,6 +62,8 @@ Brown the mince, add everything else, simmer 30 min.
 ```
 
 - First non-empty line is the **recipe name**.
+- An optional `SERVES:` line records how many portions the recipe makes; the
+  shopping list uses it to scale quantities to your household size (see below).
 - Lines starting with `-`, `*`, or `•` are **ingredients**, written as
   `Name, <unit> (<quantity>)` — the unit and comma are optional
   (e.g. `Bananas (5)`, `Cheddar Cheese, g (250)`).

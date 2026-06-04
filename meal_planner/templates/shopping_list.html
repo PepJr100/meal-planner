@@ -42,6 +42,14 @@
             <button class="nav-link" style="padding: 4px 10px; border: none; font-size: 12px; cursor: pointer;" onclick="copyIngredients(this, false)">Copy Shopping list</button>
             <button class="nav-link" style="padding: 4px 10px; border: none; font-size: 12px; cursor: pointer;" onclick="copyIngredients(this, true)">Copy Shopping list (With quantities)</button>
           </div>
+          <form method="get" action="{{ url_for('shopping_list') }}" class="url-fetch-row" style="margin-top: 8px; align-items: center;">
+            <input type="hidden" name="week" value="{{ week_start }}" />
+            <input type="hidden" name="staples" value="{{ staples_mode }}" />
+            <label class="hint" for="household-input">Servings per meal:</label>
+            <input type="number" id="household-input" name="household" min="1" step="1" value="{{ household_size }}" class="meal-slot-input" style="width: 64px;" />
+            <button type="submit" class="nav-link" style="padding: 4px 10px; border: 1px solid var(--border); cursor: pointer;">Apply</button>
+            <span class="muted-small">Recipes with a “serves” value are scaled to this.</span>
+          </form>
         </div>
         <ul class="shopping-list">
           {% for item in items %}
