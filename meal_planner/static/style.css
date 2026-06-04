@@ -911,3 +911,71 @@ button {
   background: var(--accent-soft);
   border-color: var(--accent);
 }
+
+/* Recipe palette: full-width tray of draggable chips below the week grid. */
+.recipe-tray-section {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
+.recipe-tray {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+  max-height: none;
+  overflow: visible;
+}
+
+/* Chips override the vertical-list defaults (scoped so they win specificity). */
+.recipe-tray li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 5px 11px 5px 7px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg);
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.recipe-tray li:hover {
+  background: var(--accent-soft);
+  color: var(--accent-dark);
+}
+
+.recipe-tray li.is-fav {
+  border-color: var(--accent);
+}
+
+.fav-form {
+  display: flex;
+  margin: 0;
+}
+
+.fav-star {
+  border: none;
+  background: none;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  color: var(--muted);
+  transition: color 0.15s ease;
+}
+
+.fav-star:hover {
+  color: var(--accent);
+}
+
+.recipe-tray li.is-fav .fav-star {
+  color: #e2b007; /* gold star for favourites */
+}
+
+.chip-name {
+  cursor: grab;
+}

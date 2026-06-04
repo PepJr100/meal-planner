@@ -86,8 +86,9 @@ def init_db() -> None:
         """
     )
     db.commit()
-    # Idempotent migration: recipes.serves was added after v1.0.0.
+    # Idempotent migrations: columns added after v1.0.0.
     _ensure_column("recipes", "serves", "serves INTEGER")
+    _ensure_column("recipes", "is_favourite", "is_favourite INTEGER NOT NULL DEFAULT 0")
 
 
 def _ensure_column(table: str, column: str, ddl: str) -> None:
@@ -147,7 +148,7 @@ def export_data() -> Dict[str, Any]:
             "exported_at": datetime.now(timezone.utc).isoformat(),
         },
         "recipes": rows(
-            "SELECT id, name, url, ingredients_text, method_text, serves, created_at, updated_at "
+            "SELECT id, name, url, ingredients_text, method_text, serves, is_favourite, created_at, updated_at "
             "FROM recipes ORDER BY id"
         ),
         "week_plans": rows("SELECT id, week_start_date FROM week_plans ORDER BY id"),
@@ -192,11 +193,12 @@ def import_data(payload: Dict[str, Any]) -> None:
 
         for r in sections["recipes"]:
             db.execute(
-                "INSERT INTO recipes(id, name, url, ingredients_text, method_text, serves, created_at, updated_at) "
-                "VALUES (?,?,?,?,?,?,?,?)",
+                "INSERT INTO recipes(id, name, url, ingredients_text, method_text, serves, is_favourite, created_at, updated_at) "
+                "VALUES (?,?,?,?,?,?,?,?,?)",
                 (
                     r.get("id"), r.get("name"), r.get("url"),
                     r.get("ingredients_text") or "", r.get("method_text"), r.get("serves"),
+                    1 if r.get("is_favourite") else 0,
                     r.get("created_at") or now, r.get("updated_at") or now,
                 ),
             )
@@ -277,7 +279,10 @@ def update_recipe(recipe_id: int, name: str, url: str | None, ingredients_text: 
 
 
 def get_recipes() -> List["Recipe"]:
-    rows = db.execute("SELECT id, name, url, ingredients_text, method_text, serves FROM recipes ORDER BY lower(name) ASC").fetchall()
+    rows = db.execute(
+        "SELECT id, name, url, ingredients_text, method_text, serves, is_favourite "
+        "FROM recipes ORDER BY is_favourite DESC, lower(name) ASC"
+    ).fetchall()
     out: List[Recipe] = []
     for r in rows:
         ingredients = [ln.strip() for ln in (r["ingredients_text"] or "").splitlines() if ln.strip()]
@@ -290,6 +295,7 @@ def get_recipes() -> List["Recipe"]:
                 url=(str(r["url"]) if r["url"] else None),
                 method=(str(r["method_text"]) if r["method_text"] else None),
                 serves=(int(r["serves"]) if r["serves"] is not None else None),
+                is_favourite=bool(r["is_favourite"]),
             )
         )
     return out
@@ -297,7 +303,7 @@ def get_recipes() -> List["Recipe"]:
 
 def get_recipe(recipe_id: int) -> Optional["Recipe"]:
     r = db.execute(
-        "SELECT id, name, url, ingredients_text, method_text, serves FROM recipes WHERE id = ?",
+        "SELECT id, name, url, ingredients_text, method_text, serves, is_favourite FROM recipes WHERE id = ?",
         (recipe_id,),
     ).fetchone()
     if not r:
@@ -311,6 +317,7 @@ def get_recipe(recipe_id: int) -> Optional["Recipe"]:
         url=(str(r["url"]) if r["url"] else None),
         method=(str(r["method_text"]) if r["method_text"] else None),
         serves=(int(r["serves"]) if r["serves"] is not None else None),
+        is_favourite=bool(r["is_favourite"]),
     )
 
 
@@ -634,6 +641,7 @@ class Recipe:
     url: Optional[str] = None
     method: Optional[str] = None
     serves: Optional[int] = None
+    is_favourite: bool = False
 
     @property
     def is_missing_amounts(self) -> bool:
@@ -1095,6 +1103,23 @@ def add_recipe_from_url():
     ingredients = [ln.strip() for ln in raw_ingredients.splitlines() if ln.strip()]
     upsert_recipe(name=name, ingredients=ingredients, url=(url_value or None), method=None)
     return redirect(url_for("recipes_list"))
+
+
+@app.route("/recipes/favourite", methods=["POST"])
+def toggle_favourite():
+    """Flip a recipe's favourite flag (favourites sort to the top of the palette)."""
+    try:
+        recipe_id = int(request.form.get("recipe_id") or "")
+    except ValueError:
+        recipe_id = 0
+    if recipe_id:
+        db.execute(
+            "UPDATE recipes SET is_favourite = CASE WHEN is_favourite THEN 0 ELSE 1 END WHERE id = ?",
+            (recipe_id,),
+        )
+        db.commit()
+    week_q = (request.form.get("week_start") or "").strip()
+    return redirect(url_for("index", week=week_q) if week_q else url_for("index"))
 
 
 @app.route("/shopping-list", methods=["GET"])

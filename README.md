@@ -13,8 +13,9 @@ a single shopping list with sensible unit conversions.
 ## Features
 
 - **Weekly planner** — a Monday–Sunday grid with Breakfast / Lunch / Dinner / Snack
-  slots. Drag recipes from the sidebar into slots, or drag one slot onto another to
-  swap. Changes auto-save in the background (no page reloads).
+  slots. Drag recipes from the **recipe palette** beneath the grid into slots, or drag
+  one slot onto another to swap. Star recipes as **favourites** to keep them at the
+  front of the palette. Changes auto-save in the background (no page reloads).
 
   ![Weekly planner](screenshots/planner.png)
 
