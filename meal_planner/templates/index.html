@@ -68,6 +68,24 @@
           </article>
           {% endfor %}
         </div>
+
+        {% if recipes %}
+        <section class="recipe-tray-section">
+          <p class="section-title">Recipe palette <span class="hint">— drag a recipe into a slot; ★ to favourite</span></p>
+          <ul class="recipes-list recipe-tray">
+            {% for r in recipes %}
+            <li class="recipe-chip{{ ' is-fav' if r.is_favourite else '' }}" draggable="true" data-name="{{ r.name }}">
+              <form method="post" action="{{ url_for('toggle_favourite') }}" class="fav-form">
+                <input type="hidden" name="recipe_id" value="{{ r.id }}" />
+                <input type="hidden" name="week_start" value="{{ week_start }}" />
+                <button type="submit" class="fav-star" title="{{ 'Remove favourite' if r.is_favourite else 'Mark favourite' }}" aria-label="Toggle favourite">{{ '★' if r.is_favourite else '☆' }}</button>
+              </form>
+              <span class="chip-name">{{ r.name }}</span>
+            </li>
+            {% endfor %}
+          </ul>
+        </section>
+        {% endif %}
       </section>
 
       <section class="sidebar">
@@ -156,17 +174,6 @@
             </form>
           </div>
         </div>
-
-        {% if recipes %}
-        <section class="card existing-recipes">
-          <p class="section-title">Available recipes</p>
-          <ul class="recipes-list">
-            {% for r in recipes %}
-            <li draggable="true" data-name="{{ r.name }}">{{ r.name }}</li>
-            {% endfor %}
-          </ul>
-        </section>
-        {% endif %}
       </section>
     </main>
     <script>

@@ -36,8 +36,12 @@ you'll have something to plan with straight away.
 The planner is a Monday–Sunday grid. Each day has four slots: **Breakfast**,
 **Lunch**, **Dinner**, and **Snack**.
 
-**Add a meal by dragging.** Drag a recipe from the sidebar on the left into any
-slot and it drops straight in.
+**Add a meal by dragging.** Drag a recipe from the **recipe palette** beneath the
+grid into any slot and it drops straight in.
+
+**Favourites.** Each recipe in the palette has a star (☆). Click it to mark the
+recipe as a favourite (★); favourites are kept at the front of the palette so your
+go-to meals are always within easy reach.
 
 **Rearrange by dragging.** Drag one filled slot onto another to swap the two meals.
 
