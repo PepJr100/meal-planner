@@ -19,7 +19,7 @@
           <a href="{{ url_for('index', week=this_week) }}" class="nav-link">This week</a>
           <a href="{{ url_for('index', week=next_week) }}" class="nav-link">Next week</a>
           <a href="{{ url_for('recipes_list') }}" class="nav-link">Saved recipes</a>
-          <a href="{{ url_for('shopping_list') }}" class="nav-link">Shopping list</a>
+          <a href="{{ url_for('shopping_list', week=week_start) }}" class="nav-link">Shopping list</a>
           <a href="{{ url_for('harmonize_ingredients') }}" class="nav-link">Harmonizer</a>
           <a href="{{ url_for('backup_page') }}" class="nav-link">Backup</a>
           <button type="button" class="nav-link" id="theme-toggle" aria-label="Toggle theme">Theme</button>

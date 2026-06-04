@@ -13,11 +13,16 @@
       <div class="top-bar-main">
         <div>
           <h1>Weekly Shopping List</h1>
-          <p class="subtitle">Combined ingredients from all meals in your plan</p>
+          <p class="subtitle">
+            Combined ingredients from all meals in your plan
+            <span class="week-range">· {{ week_label }}{% if is_current_week %} (this week){% endif %}</span>
+          </p>
         </div>
         <nav class="top-nav">
           <a href="{{ url_for('index', week=week_start) }}" class="nav-link">Planner</a>
-          <a href="{{ url_for('shopping_list') }}" class="nav-link active">Shopping list</a>
+          <a href="{{ url_for('shopping_list', week=prev_week, staples=staples_mode) }}" class="nav-link" title="Previous week">← Prev week</a>
+          <a href="{{ url_for('shopping_list', week=this_week, staples=staples_mode) }}" class="nav-link{% if is_current_week %} active{% endif %}">This week</a>
+          <a href="{{ url_for('shopping_list', week=next_week, staples=staples_mode) }}" class="nav-link" title="Next week">Next week →</a>
           <a href="{{ url_for('harmonize_ingredients') }}" class="nav-link">Harmonizer</a>
           <a href="{{ url_for('backup_page') }}" class="nav-link">Backup</a>
           <button type="button" class="nav-link" id="theme-toggle" aria-label="Toggle theme">Theme</button>

@@ -112,6 +112,11 @@ body {
   font-weight: 400;
 }
 
+.week-range {
+  font-weight: 600;
+  color: var(--text);
+}
+
 .top-nav {
   display: flex;
   gap: 8px;
