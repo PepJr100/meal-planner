@@ -21,6 +21,7 @@
           <a href="{{ url_for('recipes_list') }}" class="nav-link">Saved recipes</a>
           <a href="{{ url_for('shopping_list') }}" class="nav-link">Shopping list</a>
           <a href="{{ url_for('harmonize_ingredients') }}" class="nav-link">Harmonizer</a>
+          <a href="{{ url_for('backup_page') }}" class="nav-link">Backup</a>
           <button type="button" class="nav-link" id="theme-toggle" aria-label="Toggle theme">Theme</button>
           <form method="post" action="{{ url_for('clear_plan') }}" class="clear-form-inline">
             <input type="hidden" name="week_start" value="{{ week_start }}" />

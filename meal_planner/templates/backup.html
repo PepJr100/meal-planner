@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Backup &amp; Restore - Meal Planner</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}" />
+    <script src="{{ url_for('static', filename='theme.js') }}"></script>
+  </head>
+  <body>
+    <header class="top-bar">
+      <div class="top-bar-main">
+        <div>
+          <h1>Backup &amp; Restore</h1>
+          <p class="subtitle">Export your data, or restore it from a backup file</p>
+        </div>
+        <nav class="top-nav">
+          <a href="{{ url_for('index') }}" class="nav-link">Planner</a>
+          <a href="{{ url_for('recipes_list') }}" class="nav-link">Saved recipes</a>
+          <a href="{{ url_for('shopping_list') }}" class="nav-link">Shopping list</a>
+          <a href="{{ url_for('harmonize_ingredients') }}" class="nav-link">Harmonizer</a>
+          <button type="button" class="nav-link" id="theme-toggle" aria-label="Toggle theme">Theme</button>
+        </nav>
+      </div>
+    </header>
+
+    <main class="layout layout-single">
+      <section class="planner">
+        {% if status == 'ok' %}
+        <div class="card" style="border-color: var(--accent); margin-bottom: 14px;">
+          <strong>✓ {{ message }}</strong>
+        </div>
+        {% elif status == 'error' %}
+        <div class="card" style="border-color: #c0392b; margin-bottom: 14px;">
+          <strong>⚠ {{ message }}</strong>
+        </div>
+        {% endif %}
+
+        <div class="card" style="margin-bottom: 14px;">
+          <p class="section-title">Export</p>
+          <p class="hint">
+            Currently storing {{ counts.recipes }} recipe(s), {{ counts.week_plans }} week plan(s),
+            {{ counts.week_meals }} planned meal(s), and {{ counts.pantry_staples }} staple(s).
+          </p>
+          <div class="url-fetch-row" style="margin-top: 8px;">
+            <a href="{{ url_for('backup_export_json') }}" class="primary btn-sm" style="text-decoration: none;">Download JSON backup</a>
+            <a href="{{ url_for('backup_export_db') }}" class="nav-link" style="padding: 4px 10px; border: 1px solid var(--border);">Download raw .db file</a>
+          </div>
+          <p class="muted-small" style="margin-top: 8px;">
+            The JSON backup is portable and human-readable; the .db file is an exact copy of the database.
+          </p>
+        </div>
+
+        <div class="card">
+          <p class="section-title">Restore</p>
+          <p class="hint">
+            Import a <strong>JSON backup</strong>. This <strong>replaces all current data</strong>
+            with the contents of the file.
+          </p>
+          <form method="post" action="{{ url_for('backup_import') }}" enctype="multipart/form-data"
+                onsubmit="return confirm('This will REPLACE all current recipes, plans and settings with the backup file. Continue?');">
+            <input type="file" name="file" accept=".json,application/json" required class="meal-slot-input" style="margin-bottom: 10px;" />
+            <button type="submit" class="primary">Restore from backup</button>
+          </form>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

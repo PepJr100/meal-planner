@@ -132,6 +132,14 @@ Either way the container serves the app with gunicorn on port 8717 and stores it
 database at `/data/meal_planner.db`; mount a volume (as above) to persist it across
 restarts. Then open <http://localhost:8717>.
 
+## Backup & restore
+
+The **Backup** page (linked in the top nav) exports your whole database — recipes,
+week plans, planned meals, staples, and settings — as a portable JSON file, or as a
+raw copy of the SQLite `.db`. Importing a JSON backup **replaces** all current data
+with the file's contents (after a confirmation), so it doubles as a restore and a
+way to move your data between machines.
+
 ## Releasing
 
 Versioning follows [semver](https://semver.org/) via git tags. To cut a release:
