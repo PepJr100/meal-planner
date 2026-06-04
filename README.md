@@ -7,6 +7,9 @@ Built with Flask + SQLite, it imports a personal recipe library, lets you fill a
 weekly grid (drag-and-drop), and aggregates every ingredient across the week into
 a single shopping list with sensible unit conversions.
 
+> 📖 New here? See the **[User Guide](UserGuide.md)** for a feature-by-feature
+> walkthrough. Developer notes live in [`docs/`](docs/).
+
 ## Features
 
 - **Weekly planner** — a Monday–Sunday grid with Breakfast / Lunch / Dinner / Snack
@@ -83,13 +86,25 @@ Set `MEAL_PLANNER_DB` to override the database path (defaults to
 
 ### Pull the published image
 
-A prebuilt image is published to the GitHub Container Registry on every push to
-`main`:
+Prebuilt images are published to the GitHub Container Registry. For everyday use,
+pull `:stable` (the latest tagged release):
 
 ```bash
-docker pull ghcr.io/pepjr100/meal-planner:latest
-docker run -p 8717:8717 -v meal_planner_data:/data ghcr.io/pepjr100/meal-planner:latest
+docker pull ghcr.io/pepjr100/meal-planner:stable
+docker run -p 8717:8717 -v meal_planner_data:/data ghcr.io/pepjr100/meal-planner:stable
 ```
+
+#### Image tags
+
+| Tag | Points to | Use it for |
+| --- | --- | --- |
+| `stable` | the most recent `vX.Y.Z` release | **everyday use** — the recommended tag |
+| `latest` | the tip of `main`, rebuilt on every push | trying unreleased changes between versions (may be unstable) |
+| `1.0.0`, `1.0` | a specific release | pinning an exact version |
+| `sha-<short>` | one immutable build | reproducing or rolling back to an exact commit |
+
+So `stable` only moves when a new version is tagged, while `latest` tracks ongoing
+development.
 
 ### Build it yourself
 
@@ -102,6 +117,24 @@ Either way the container serves the app with gunicorn on port 8717 and stores it
 database at `/data/meal_planner.db`; mount a volume (as above) to persist it across
 restarts. Then open <http://localhost:8717>.
 
+## Releasing
+
+Versioning follows [semver](https://semver.org/) via git tags. To cut a release:
+
+```bash
+git tag v1.0.0          # vMAJOR.MINOR.PATCH
+git push origin v1.0.0
+```
+
+Pushing a `vX.Y.Z` tag triggers CI to:
+
+1. build the image and publish it as `:stable`, `:X.Y.Z`, and `:X.Y`, and
+2. create a GitHub Release with auto-generated notes.
+
+Ordinary pushes to `main` only update the `:latest` image, so `:stable` stays put
+until the next tag. Bump **MAJOR** for breaking changes, **MINOR** for new
+features, **PATCH** for fixes.
+
 ## Project layout
 
 ```
@@ -112,6 +145,9 @@ meal_planner/
   static/style.css   Styles
 scripts/
   populate_recipes_from_excel.py   One-off importer from Excel workbooks
+docs/
+  development-history.md           How the app's features were built (dev notes)
+UserGuide.md         End-user guide to every feature
 Dockerfile
 requirements.txt
 ```
