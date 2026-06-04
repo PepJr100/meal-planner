@@ -85,15 +85,46 @@
     <script>
       function copyIngredients() {
         const textToCopy = Array.from(document.querySelectorAll('.shopping-list li')).map(li => {
-          return li.querySelector('.item-name')?.innerText.trim() || '';
+          const name = li.querySelector('.item-name')?.innerText.trim() || '';
+          const count = li.querySelector('.item-count')?.innerText.trim() || '';
+          if (!name) return '';
+          return count ? name + ' — ' + count.replace(/\s+/g, ' ') : name;
         }).filter(Boolean).join('\n');
-        
-        navigator.clipboard.writeText(textToCopy).then(() => {
-          const btn = document.querySelector('button[onclick="copyIngredients()"]');
-          const originalText = btn.innerText;
-          btn.innerText = 'Copied!';
-          setTimeout(() => btn.innerText = originalText, 2000);
-        });
+
+        const btn = document.querySelector('button[onclick="copyIngredients()"]');
+        const originalText = btn.innerText;
+        const showFeedback = (msg) => {
+          btn.innerText = msg;
+          setTimeout(() => (btn.innerText = originalText), 2000);
+        };
+
+        // navigator.clipboard is only available in secure contexts (HTTPS or
+        // localhost). Fall back to execCommand for plain-HTTP/LAN access.
+        if (navigator.clipboard && window.isSecureContext) {
+          navigator.clipboard.writeText(textToCopy)
+            .then(() => showFeedback('Copied!'))
+            .catch(() => fallbackCopy(textToCopy, showFeedback));
+        } else {
+          fallbackCopy(textToCopy, showFeedback);
+        }
+      }
+
+      function fallbackCopy(text, showFeedback) {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        let ok = false;
+        try {
+          ok = document.execCommand('copy');
+        } catch (e) {
+          ok = false;
+        }
+        document.body.removeChild(textarea);
+        showFeedback(ok ? 'Copied!' : 'Copy failed');
       }
     </script>
   </body>
