@@ -122,6 +122,10 @@ docker run -p 8717:8717 -v meal_planner_data:/data ghcr.io/pepjr100/meal-planner
 So `stable` only moves when a new version is tagged, while `latest` tracks ongoing
 development.
 
+Each published image is stamped with its version and channel (the release tag or
+commit sha, plus `stable`/`latest`), shown in a small badge in the bottom-left of
+the app. Running from source shows the `VERSION` file value and `dev`.
+
 ### Build it yourself
 
 ```bash

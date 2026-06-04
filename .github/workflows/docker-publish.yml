@@ -67,6 +67,10 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          # Stamp the image with its version (tag name or commit sha) and channel.
+          build-args: |
+            APP_VERSION=${{ github.ref_type == 'tag' && github.ref_name || github.sha }}
+            APP_CHANNEL=${{ github.ref_type == 'tag' && 'stable' || 'latest' }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 

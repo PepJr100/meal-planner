@@ -1,0 +1,5 @@
+{% if app_version %}
+<div class="app-version" title="App version and release channel">
+  {{ app_version }}{% if app_channel %} · {{ app_channel }}{% endif %}
+</div>
+{% endif %}
