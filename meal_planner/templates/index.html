@@ -145,6 +145,7 @@
             <form method="post" action="{{ url_for('add_recipe_from_parsed') }}" id="recipe-confirm-form">
               <label><span>Recipe name</span><input type="text" name="name" id="confirm-name" required /></label>
               <label><span>URL</span><input type="url" name="url" id="confirm-url" /></label>
+              <label><span>Serves (optional)</span><input type="number" name="serves" id="confirm-serves" min="1" step="1" placeholder="e.g. 4" /></label>
               <label><span>Ingredients (one per line)</span><textarea name="ingredients" id="confirm-ingredients" rows="8"></textarea></label>
               <label><span>Method (optional)</span><textarea name="method" id="confirm-method" rows="6"></textarea></label>
               <div class="modal-actions">
@@ -231,6 +232,7 @@
         function showModal(data) {
           document.getElementById("confirm-name").value = data.name || "";
           document.getElementById("confirm-url").value = data.url || "";
+          document.getElementById("confirm-serves").value = data.serves || "";
           document.getElementById("confirm-ingredients").value = (data.ingredients || []).join("\n");
           document.getElementById("confirm-method").value = data.method || "";
           if (fetchError) fetchError.style.display = "none";

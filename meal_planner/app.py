@@ -78,9 +78,56 @@ def init_db() -> None:
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           normalized_name TEXT NOT NULL UNIQUE
         );
+
+        CREATE TABLE IF NOT EXISTS settings (
+          key TEXT PRIMARY KEY,
+          value TEXT
+        );
         """
     )
     db.commit()
+    # Idempotent migration: recipes.serves was added after v1.0.0.
+    _ensure_column("recipes", "serves", "serves INTEGER")
+
+
+def _ensure_column(table: str, column: str, ddl: str) -> None:
+    """Add a column if it isn't already present (simple forward migration)."""
+    existing = {row["name"] for row in db.execute("PRAGMA table_info(%s)" % table)}
+    if column not in existing:
+        db.execute("ALTER TABLE %s ADD COLUMN %s" % (table, ddl))
+        db.commit()
+
+
+# --- Settings (key/value) -------------------------------------------------
+
+DEFAULT_HOUSEHOLD_SIZE = 2
+
+
+def get_setting(key: str, default: Optional[str] = None) -> Optional[str]:
+    row = db.execute("SELECT value FROM settings WHERE key = ?", (key,)).fetchone()
+    return str(row["value"]) if row else default
+
+
+def set_setting(key: str, value: Any) -> None:
+    db.execute(
+        "INSERT INTO settings(key, value) VALUES (?, ?) "
+        "ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+        (key, str(value)),
+    )
+    db.commit()
+
+
+def get_household_size() -> int:
+    """Portions wanted per planned meal; used to scale recipe quantities."""
+    try:
+        n = int(get_setting("household_size", str(DEFAULT_HOUSEHOLD_SIZE)) or "")
+        return n if n > 0 else DEFAULT_HOUSEHOLD_SIZE
+    except (TypeError, ValueError):
+        return DEFAULT_HOUSEHOLD_SIZE
+
+
+def set_household_size(n: int) -> None:
+    set_setting("household_size", int(n))
 
 
 def ensure_recipes_dir() -> None:
@@ -109,28 +156,28 @@ def get_or_create_week_plan_id(week_start: date) -> int:
     return int(cur.lastrowid or 0)
 
 
-def upsert_recipe(name: str, ingredients: List[str], url: str | None = None, method: str | None = None) -> int:
+def upsert_recipe(name: str, ingredients: List[str], url: str | None = None, method: str | None = None, serves: int | None = None) -> int:
     now = datetime.now(timezone.utc).isoformat()
     ingredients_text = "\n".join([i.strip() for i in ingredients if i and i.strip()])
     cur = db.execute(
-        "INSERT INTO recipes(name, url, ingredients_text, method_text, created_at, updated_at) VALUES (?,?,?,?,?,?)",
-        (name.strip(), (url or None), ingredients_text, (method or None), now, now),
+        "INSERT INTO recipes(name, url, ingredients_text, method_text, serves, created_at, updated_at) VALUES (?,?,?,?,?,?,?)",
+        (name.strip(), (url or None), ingredients_text, (method or None), serves, now, now),
     )
     db.commit()
     return int(cur.lastrowid or 0)
 
 
-def update_recipe(recipe_id: int, name: str, url: str | None, ingredients_text: str, method: str | None) -> None:
+def update_recipe(recipe_id: int, name: str, url: str | None, ingredients_text: str, method: str | None, serves: int | None = None) -> None:
     now = datetime.now(timezone.utc).isoformat()
     db.execute(
-        "UPDATE recipes SET name=?, url=?, ingredients_text=?, method_text=?, updated_at=? WHERE id=?",
-        (name.strip(), (url or None), ingredients_text.strip(), (method or None), now, recipe_id),
+        "UPDATE recipes SET name=?, url=?, ingredients_text=?, method_text=?, serves=?, updated_at=? WHERE id=?",
+        (name.strip(), (url or None), ingredients_text.strip(), (method or None), serves, now, recipe_id),
     )
     db.commit()
 
 
 def get_recipes() -> List["Recipe"]:
-    rows = db.execute("SELECT id, name, url, ingredients_text, method_text FROM recipes ORDER BY lower(name) ASC").fetchall()
+    rows = db.execute("SELECT id, name, url, ingredients_text, method_text, serves FROM recipes ORDER BY lower(name) ASC").fetchall()
     out: List[Recipe] = []
     for r in rows:
         ingredients = [ln.strip() for ln in (r["ingredients_text"] or "").splitlines() if ln.strip()]
@@ -142,6 +189,7 @@ def get_recipes() -> List["Recipe"]:
                 source_path=None,
                 url=(str(r["url"]) if r["url"] else None),
                 method=(str(r["method_text"]) if r["method_text"] else None),
+                serves=(int(r["serves"]) if r["serves"] is not None else None),
             )
         )
     return out
@@ -149,7 +197,7 @@ def get_recipes() -> List["Recipe"]:
 
 def get_recipe(recipe_id: int) -> Optional["Recipe"]:
     r = db.execute(
-        "SELECT id, name, url, ingredients_text, method_text FROM recipes WHERE id = ?",
+        "SELECT id, name, url, ingredients_text, method_text, serves FROM recipes WHERE id = ?",
         (recipe_id,),
     ).fetchone()
     if not r:
@@ -162,6 +210,7 @@ def get_recipe(recipe_id: int) -> Optional["Recipe"]:
         source_path=None,
         url=(str(r["url"]) if r["url"] else None),
         method=(str(r["method_text"]) if r["method_text"] else None),
+        serves=(int(r["serves"]) if r["serves"] is not None else None),
     )
 
 
@@ -179,9 +228,9 @@ def import_filesystem_recipes_if_empty() -> None:
             continue
         suffix = entry.suffix.lower()
         if suffix in {".txt", ".md"}:
-            name, ingredients, url, method = _parse_text_recipe(entry)
+            name, ingredients, url, method, serves = _parse_text_recipe(entry)
             if name:
-                upsert_recipe(name=name, ingredients=ingredients, url=url, method=method)
+                upsert_recipe(name=name, ingredients=ingredients, url=url, method=method, serves=serves)
         elif suffix == ".csv":
             for name, ingredients in _parse_csv_recipes(entry):
                 if name:
@@ -322,17 +371,26 @@ class Bucket(TypedDict):
     originals: List[Dict[str, Any]]
 
 
-def build_shopping_list_for_week(week_plan_id: int) -> List[Dict[str, Any]]:
+def build_shopping_list_for_week(week_plan_id: int, household_size: Optional[int] = None) -> List[Dict[str, Any]]:
     """
     Build a structured shopping list for a given week, using Ingredient Parser and UK units.
     Aggregates by (normalized_name, unit_uk) when available; otherwise by original_text.
+
+    Each recipe's quantities are scaled by ``household_size / serves`` when the
+    recipe declares a serving count; recipes without ``serves`` are left as-is.
     """
-    # Map recipe_id -> ingredients_text
+    if household_size is None:
+        household_size = get_household_size()
+
+    # Map recipe_id -> {name, ingredients, scale factor}
     recipes_map: Dict[int, Dict[str, Any]] = {}
-    for r in db.execute("SELECT id, name, ingredients_text FROM recipes"):
+    for r in db.execute("SELECT id, name, ingredients_text, serves FROM recipes"):
+        serves = r["serves"]
+        factor = (household_size / serves) if (serves and serves > 0) else 1.0
         recipes_map[int(r["id"])] = {
             "name": str(r["name"]),
             "ingredients": [ln.strip() for ln in (r["ingredients_text"] or "").splitlines() if ln.strip()],
+            "factor": factor,
         }
 
     # Collect ingredient lines
@@ -347,20 +405,25 @@ def build_shopping_list_for_week(week_plan_id: int) -> List[Dict[str, Any]]:
         recipe = recipes_map.get(rid)
         if not recipe:
             continue
+        factor = recipe["factor"]
         for line in recipe["ingredients"]:
             try:
-                parsed_items.append(parse_ingredient_line_uk(line))
+                parsed = parse_ingredient_line_uk(line)
             except Exception:
-                parsed_items.append(
-                    {
-                        "normalized_name": line.strip(),
-                        "qty_uk": None,
-                        "unit_uk": None,
-                        "original_qty": None,
-                        "original_unit": None,
-                        "original_text": line.strip(),
-                    }
-                )
+                parsed = {
+                    "normalized_name": line.strip(),
+                    "name_singular": singularize(line.strip()),
+                    "qty_uk": None,
+                    "unit_uk": None,
+                    "original_qty": None,
+                    "original_unit": None,
+                    "original_text": line.strip(),
+                }
+            # Scale the aggregated quantity to the household; leave the originals
+            # untouched so the "used in" provenance shows the recipe's real amounts.
+            if factor != 1.0 and parsed.get("qty_uk") is not None:
+                parsed["qty_uk"] = parsed["qty_uk"] * factor
+            parsed_items.append(parsed)
 
     # Aggregate
     totals: Dict[Tuple[str, Optional[str]], Bucket] = {}
@@ -470,6 +533,7 @@ class Recipe:
     source_path: Optional[Path] = None
     url: Optional[str] = None
     method: Optional[str] = None
+    serves: Optional[int] = None
 
     @property
     def is_missing_amounts(self) -> bool:
@@ -526,24 +590,26 @@ class Plan:
 
 
 
-def _parse_text_recipe(path: Path) -> Tuple[Optional[str], List[str], Optional[str], Optional[str]]:
+def _parse_text_recipe(path: Path) -> Tuple[Optional[str], List[str], Optional[str], Optional[str], Optional[int]]:
     """
     Very simple parser for .txt/.md recipe files.
 
     Convention:
       - first non-empty line: recipe name
       - an optional line starting with 'URL:' is treated as a source URL
+      - an optional line starting with 'SERVES:' sets the recipe's serving count
       - lines starting with '-', '*', '•' are ingredients
       - optional 'METHOD:' section: following lines are method text
     """
     try:
         text = path.read_text(encoding="utf-8", errors="ignore")
     except OSError:
-        return None, [], None, None
+        return None, [], None, None, None
 
     lines = [ln.rstrip() for ln in text.splitlines()]
     name: Optional[str] = None
     url: Optional[str] = None
+    serves: Optional[int] = None
     ingredients: List[str] = []
     method: Optional[str] = None
     in_method = False
@@ -564,6 +630,10 @@ def _parse_text_recipe(path: Path) -> Tuple[Optional[str], List[str], Optional[s
                 method_lines.append(rest)
             continue
 
+        if stripped.lower().startswith("serves:"):
+            serves = _coerce_serves(stripped.split(":", 1)[1])
+            continue
+
         if name is None and not stripped.lower().startswith("url:"):
             name = stripped
             continue
@@ -578,7 +648,16 @@ def _parse_text_recipe(path: Path) -> Tuple[Optional[str], List[str], Optional[s
 
     if method_lines:
         method = "\n".join(method_lines).strip() or None
-    return name, ingredients, url, method
+    return name, ingredients, url, method, serves
+
+
+def _coerce_serves(raw: Any) -> Optional[int]:
+    """Parse a serving count from form/text input; returns a positive int or None."""
+    match = re.search(r"\d+", str(raw or ""))
+    if not match:
+        return None
+    n = int(match.group(0))
+    return n if n > 0 else None
 
 
 def _parse_csv_recipes(path: Path) -> List[Tuple[str, List[str]]]:
@@ -618,7 +697,7 @@ def load_recipes() -> List[Recipe]:
 
         suffix = entry.suffix.lower()
         if suffix in {".txt", ".md"}:
-            name, ingredients, url, method = _parse_text_recipe(entry)
+            name, ingredients, url, method, serves = _parse_text_recipe(entry)
             if not name:
                 continue
             recipes.append(
@@ -629,6 +708,7 @@ def load_recipes() -> List[Recipe]:
                     source_path=entry,
                     url=url,
                     method=method,
+                    serves=serves,
                 )
             )
             current_id = current_id + 1  # type: ignore
@@ -768,9 +848,9 @@ def upload_recipes():
             continue
         suffix = target.suffix.lower()
         if suffix in {".txt", ".md"}:
-            name, ingredients, url, method = _parse_text_recipe(target)
+            name, ingredients, url, method, serves = _parse_text_recipe(target)
             if name:
-                upsert_recipe(name=name, ingredients=ingredients, url=url, method=method)
+                upsert_recipe(name=name, ingredients=ingredients, url=url, method=method, serves=serves)
         elif suffix == ".csv":
             for name, ingredients in _parse_csv_recipes(target):
                 if name:
@@ -896,7 +976,8 @@ def add_recipe_from_parsed():
     if not name:
         return redirect(url_for("index"))
     ingredients = [ln.strip() for ln in raw_ingredients.splitlines() if ln.strip()]
-    upsert_recipe(name=name, ingredients=ingredients, url=(url_value or None), method=(method or None))
+    serves = _coerce_serves(request.form.get("serves"))
+    upsert_recipe(name=name, ingredients=ingredients, url=(url_value or None), method=(method or None), serves=serves)
     return redirect(url_for("recipes_list"))
 
 
@@ -924,12 +1005,18 @@ def shopping_list():
     week_start = monday_of(date.fromisoformat(week_q)) if week_q else monday_of(today)
     week_plan_id = get_or_create_week_plan_id(week_start)
 
+    # Household size scales recipe quantities; persist it when changed via the UI.
+    household_q = _coerce_serves(request.args.get("household"))
+    if household_q:
+        set_household_size(household_q)
+    household_size = get_household_size()
+
     # Pantry staples
     staple_names = {
         str(r["normalized_name"]).lower()
         for r in db.execute("SELECT normalized_name FROM pantry_staples")
     }
-    items = build_shopping_list_for_week(week_plan_id)
+    items = build_shopping_list_for_week(week_plan_id, household_size=household_size)
     for it in items:
         it["is_staple"] = it["name"].lower() in staple_names
 
@@ -945,6 +1032,7 @@ def shopping_list():
         items=items,
         week_start=week_start.isoformat(),
         staples_mode=pin_mode,
+        household_size=household_size,
     )
 
 
@@ -985,9 +1073,10 @@ def recipe_edit(recipe_id: int):
         url_value = (request.form.get("url") or "").strip()
         ingredients_text = (request.form.get("ingredients") or "").strip()
         method = (request.form.get("method") or "").strip()
+        serves = _coerce_serves(request.form.get("serves"))
         if not name:
             return redirect(url_for("recipe_edit", recipe_id=recipe_id))
-        update_recipe(recipe_id=recipe_id, name=name, url=(url_value or None), ingredients_text=ingredients_text, method=(method or None))
+        update_recipe(recipe_id=recipe_id, name=name, url=(url_value or None), ingredients_text=ingredients_text, method=(method or None), serves=serves)
         return redirect(url_for("recipes_list"))
 
     return render_template(

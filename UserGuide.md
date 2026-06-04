@@ -8,6 +8,7 @@ hosting, see the [README](README.md).
 - [Getting started](#getting-started)
 - [The weekly planner](#the-weekly-planner)
 - [The shopping list](#the-shopping-list)
+  - [Servings & scaling](#servings--scaling)
 - [The recipe library](#the-recipe-library)
 - [Importing a recipe from a URL](#importing-a-recipe-from-a-url)
 - [The ingredient harmonizer](#the-ingredient-harmonizer)
@@ -63,6 +64,14 @@ all the meals in the week, and units are normalised to UK conventions (g, kg, ml
 l, tsp, tbsp; `cup` is treated as US). Fractional amounts are shown as-is
 (e.g. `0.3`), not rounded away.
 
+### Servings & scaling
+
+A recipe can record how many portions it makes (its **Serves** value). On the
+shopping list, set **Servings per meal** to your household size and any recipe with
+a Serves value is scaled to match — a "serves 4" recipe contributes half its
+quantities when you want 2 portions. Recipes without a Serves value are left exactly
+as written, so this is entirely opt-in. The setting is remembered between visits.
+
 **Pantry staples.** Use **Mark as staple** on items you usually keep at home (salt,
 oil, etc.). Staples are grouped together and can be pinned to the **top** or
 **bottom** of the list with the **Pin top / Pin bottom** control, so they don't
@@ -98,6 +107,7 @@ When adding or editing a recipe by hand, ingredients follow a simple convention:
 ```
 Chilli Con Carne
 URL: https://example.com/chilli        (optional)
+SERVES: 4                              (optional)
 
 - Onion (1)
 - Kidney Beans, g (400)
@@ -109,6 +119,9 @@ Brown the mince, add everything else, simmer 30 min.
 ```
 
 - The first non-empty line is the **recipe name**.
+- An optional `SERVES:` line says how many portions the recipe makes — the shopping
+  list uses it to scale quantities (see [Servings & scaling](#servings--scaling)).
+  In the editor it's the **Serves** field.
 - Lines starting with `-`, `*`, or `•` are **ingredients**, written as
   `Name, <unit> (<quantity>)`. The unit and comma are optional, so
   `Bananas (5)` and `Cheddar Cheese, g (250)` are both fine.

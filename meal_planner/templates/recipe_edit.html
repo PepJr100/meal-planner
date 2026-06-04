@@ -35,6 +35,11 @@
             <input type="url" name="url" value="{{ recipe.url or '' }}" placeholder="https://..." />
           </label>
           <label>
+            <span>Serves (optional)</span>
+            <input type="number" name="serves" min="1" step="1" value="{{ recipe.serves or '' }}" placeholder="e.g. 4" />
+            <small class="hint">How many portions this recipe makes. Used to scale shopping-list quantities to your household size.</small>
+          </label>
+          <label>
             <span>Ingredients (one per line)</span>
             <textarea name="ingredients" rows="12" placeholder="One ingredient per line">{{ ingredients_text }}</textarea>
           </label>

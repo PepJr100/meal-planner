@@ -27,6 +27,7 @@ def db():
         "DROP TABLE IF EXISTS week_plans;"
         "DROP TABLE IF EXISTS recipes;"
         "DROP TABLE IF EXISTS pantry_staples;"
+        "DROP TABLE IF EXISTS settings;"
     )
     conn.commit()
     app_module.init_db()
@@ -37,19 +38,22 @@ def db():
 def make_plan(db):
     """Factory that builds a week plan from recipes and returns its week_plan_id.
 
-    Pass a list of ``(ingredient_lines, times)`` tuples; each recipe is created
-    and scheduled into ``times`` separate dinner slots. Recipes are inserted in
-    the given order, so tests can rely on ingredient processing order.
+    Pass a list of ``(ingredient_lines, times)`` or ``(ingredient_lines, times,
+    serves)`` tuples; each recipe is created and scheduled into ``times`` separate
+    dinner slots. Recipes are inserted in the given order, so tests can rely on
+    ingredient processing order.
     """
     counter = {"n": 0}
 
     def _make(recipes):
         week_plan_id = app_module.get_or_create_week_plan_id(date(2026, 6, 1))
         day = 0
-        for ingredient_lines, times in recipes:
+        for spec in recipes:
+            ingredient_lines, times = spec[0], spec[1]
+            serves = spec[2] if len(spec) > 2 else None
             counter["n"] += 1
             name = "R%d" % counter["n"]
-            rid = app_module.upsert_recipe(name, ingredient_lines)
+            rid = app_module.upsert_recipe(name, ingredient_lines, serves=serves)
             for _ in range(times):
                 db.execute(
                     "INSERT INTO week_meals"
