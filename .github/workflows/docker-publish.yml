@@ -1,10 +1,17 @@
 name: docker-publish
 
-# Build the image and push it to the GitHub Container Registry (ghcr.io)
-# on every push to main, plus a manual "Run workflow" button.
+# Build the image and push it to the GitHub Container Registry (ghcr.io).
+#
+# Tagging strategy:
+#   - push to main         -> :latest        (bleeding edge / dev between releases)
+#   - push a vX.Y.Z tag    -> :stable, :X.Y.Z, :X.Y   (a published release)
+#   - both                 -> :sha-<short>   (immutable pin to a build)
+#
+# Cut a release by pushing a semver tag:  git tag v1.0.0 && git push origin v1.0.0
 on:
   push:
     branches: [main]
+    tags: ['v*.*.*']
   workflow_dispatch:
 
 # Cancel an in-progress run if a newer push to the same ref arrives.
@@ -46,7 +53,10 @@ jobs:
           # metadata-action lowercases the image name, so PepJr100 -> pepjr100.
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=raw,value=latest
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+            type=raw,value=stable,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
             type=sha,format=short
 
       - name: Build and push
@@ -59,3 +69,24 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  # On a vX.Y.Z tag push, publish a GitHub Release with auto-generated notes
+  # (from merged PRs since the previous tag). Runs only after the image is up.
+  release:
+    needs: build-and-push
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          body: |
+            Docker image: `ghcr.io/pepjr100/meal-planner:${{ github.ref_name }}`
+            (also tagged `:stable`).
+
+            ```bash
+            docker pull ghcr.io/pepjr100/meal-planner:stable
+            ```
