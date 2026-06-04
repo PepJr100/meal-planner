@@ -1073,13 +1073,20 @@ def harmonize_ingredients():
 
 @app.route("/ingredients/harmonize/apply", methods=["POST"])
 def harmonize_apply():
-    """Bulk replace one ingredient string with another across all recipes."""
-    old_text = (request.form.get("old_text") or "").strip()
+    """Bulk replace one or more ingredient strings with a single target across all recipes.
+
+    Accepts multiple `old_text` values (e.g. all variations in a group) and one
+    `new_text` target, which may be an existing variation or a custom-typed string.
+    """
+    old_texts = {t.strip() for t in request.form.getlist("old_text") if t.strip()}
     new_text = (request.form.get("new_text") or "").strip()
-    
-    if not old_text or not new_text or old_text == new_text:
+
+    # Don't replace the target with itself (the chosen variation may be in the list).
+    old_texts.discard(new_text)
+
+    if not old_texts or not new_text:
         return redirect(url_for("harmonize_ingredients"))
-    
+
     rows = db.execute("SELECT id, ingredients_text FROM recipes").fetchall()
     for row in rows:
         text = row["ingredients_text"] or ""
@@ -1087,12 +1094,12 @@ def harmonize_apply():
         new_lines = []
         changed = False
         for ln in lines:
-            if ln.strip() == old_text:
+            if ln.strip() in old_texts:
                 new_lines.append(new_text)
                 changed = True
             else:
                 new_lines.append(ln)
-        
+
         if changed:
             db.execute("UPDATE recipes SET ingredients_text = ? WHERE id = ?", ("\n".join(new_lines), row["id"]))
             
